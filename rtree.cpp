@@ -26,6 +26,7 @@
 // CONSTANTS
 #define NODE_PREFIX "leaves/leaf_"
 #define SESSION_FILE ".tree.session"
+#define OBJECT_FILE "objects/objectFile"
 #define DEFAULT -1
 
 // Standard Streams
@@ -51,6 +52,56 @@
 namespace RTree {
     // We use the std namespace freely
     using namespace std;
+
+    // Database objects
+    class DBObject {
+        private:
+            static long objectCount;
+
+        public:
+            // Get the objectCount
+            static long getObjectCount() { return objectCount; }
+
+            // Set the objectCount
+            static void setObjectCount(long _objectCount) { objectCount = _objectCount; }
+
+        private:
+            // Contents of the Object
+            vector<double> point;
+            long fileIndex = DEFAULT;
+            string dataString = "";
+
+        public:
+            DBObject(vector<double> _point, string _dataString) : point(_point), dataString(_dataString) {
+                fileIndex = objectCount++;
+
+                // Open a file and write the string to it
+                ofstream ofile(OBJECT_FILE, ios::app);
+                ofile << dataString << endl;
+                ofile.close();
+            }
+
+            DBObject(vector<double> _point, long _fileIndex) : point(_point), fileIndex(_fileIndex) {
+                // Open a file and read the dataString
+                ifstream ifile(OBJECT_FILE);
+                for (long i = 0; i < fileIndex + 1; ++i) {
+                    getline(ifile, dataString);
+                }
+                ifile.close();
+            }
+
+            // Return the key of the object
+            vector<double> getPoint() { return point; }
+
+            // Return the string
+            string getDataString() const { return dataString; }
+
+            // Return the fileIndex
+            long getFileIndex() const { return fileIndex; }
+    };
+
+    // Initial static values
+    long DBObject::objectCount = 0;
 
     // An RTree Node
     class Node {
@@ -285,6 +336,11 @@ namespace RTree {
         memcpy(buffer + location, &fileCount, sizeof(fileCount));
         location += sizeof(fileCount);
 
+        // Store the global objectCount
+        long objectCount = DBObject::getObjectCount();
+        memcpy(buffer + location, &objectCount, sizeof(objectCount));
+        location += sizeof(objectCount);
+
         // Create a binary file and write to memory
         ofstream sessionFile(SESSION_FILE, ios::binary | ios::out);
         sessionFile.write(buffer, PAGESIZE);
@@ -311,8 +367,14 @@ namespace RTree {
         memcpy((char *) &fileCount, buffer + location, sizeof(fileCount));
         location += sizeof(fileCount);
 
+        // Retreive the global objectCount
+        long objectCount = 0;
+        memcpy((char *) &objectCount, buffer + location, sizeof(objectCount));
+        location += sizeof(objectCount);
+
         // Store the session variables
         Node::setFileCount(fileCount);
+        DBObject::setObjectCount(objectCount);
 
         // Delete the current root and load it from disk
         delete RRoot;
