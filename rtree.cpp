@@ -196,6 +196,12 @@ namespace RTree {
     }
 };
 
+using namespace RTree;
+
 int main() {
+    // Initialize the bounds before processing
+    Node::initialize();
+    Rroot = new Node();
+    Rroot->storeNodeToDisk();
     return 0;
 }
