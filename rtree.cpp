@@ -160,6 +160,12 @@ namespace RTree {
             // Get the childCount
             long getChildCount() const { return childIndices.size(); }
 
+            // Get the volume of MBR
+            double getVolume() const;
+
+            // Distance of Point
+            double getDistanceOfPoint(vector<double> point) const;
+
             // Store the node to disk
             void storeNodeToDisk() const;
 
@@ -202,6 +208,38 @@ namespace RTree {
         // TODO: clear this up
         upperBound = 10;
         lowerBound = 5;
+    }
+
+    double Node::getVolume() const {
+        double volume = 1;
+
+        for (long i = 0; i < DIMENSION; ++i) {
+            volume *= (upperPoints[i] - lowerPoints[i]);
+        }
+
+        return volume;
+    }
+
+    double Node::getDistanceOfPoint(vector<double> point) const {
+        double distance = 0;
+        double component = 0;
+
+        for (long i = 0; i < DIMENSION; ++i) {
+
+            // For each component we check where it lies for every projection
+            if (point[i] >= lowerPoints[i] && point[i] <= upperPoints[i]) {
+                component = 0;
+            } else if (point[i] < lowerPoints[i]) {
+                component = lowerPoints[i] - point[i];
+            } else {
+                component = point[i] - upperPoints[i];
+            }
+
+            // Add the square of component to distance
+            distance += component * component;
+        }
+
+        return sqrt(distance);
     }
 
     void Node::storeNodeToDisk() const {
