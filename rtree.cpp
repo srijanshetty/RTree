@@ -31,6 +31,7 @@
 // Standard Streams
 #include <iostream>
 #include <fstream>
+#include <stdlib.h>
 
 // STL
 #include <string>
@@ -43,14 +44,14 @@
 #include <math.h>
 #include <limits>
 
-// Timing
+// Timing functions
 #include <chrono>
 
-#include <stdlib.h>
-
-using namespace std;
-
 namespace RTree {
+    // We use the std namespace freely
+    using namespace std;
+
+    // An RTree Node
     class Node {
         private:
             static long fileCount;
@@ -69,7 +70,7 @@ namespace RTree {
 
         private:
             // Entries required to completely specify a node
-            bool leaf = false;
+            bool leaf = true;
             long fileIndex = DEFAULT;
             long parentIndex = DEFAULT;
             long sizeOfSubtree = DEFAULT;
@@ -100,7 +101,7 @@ namespace RTree {
             void storeNodeToDisk() const;
 
             // Read the node from the disk
-            void readNodeFromDisk();
+            void loadNodeFromDisk();
     };
 
     // The root of the tree
@@ -141,7 +142,7 @@ namespace RTree {
         fileIndex = _fileIndex;
 
         // Load the node from the disk
-        readNodeFromDisk();
+        loadNodeFromDisk();
     }
 
     void Node::storeNodeToDisk() const {
@@ -192,7 +193,7 @@ namespace RTree {
         nodeFile.close();
     }
 
-    void Node::readNodeFromDisk() {
+    void Node::loadNodeFromDisk() {
         // Create a char buffer to read contents from disk
         char buffer[PAGESIZE];
         long location = 0;
@@ -296,7 +297,7 @@ namespace RTree {
         // Delete the current root and load it from disk
         delete RRoot;
         RRoot = new Node(fileIndex);
-        RRoot->readNodeFromDisk();
+        RRoot->loadNodeFromDisk();
     }
 };
 
@@ -308,6 +309,12 @@ int main() {
 
     // Create a new tree
     RRoot = new Node();
+    RRoot->storeNodeToDisk();
+    cout << RRoot->getFileName() << endl;
+    RRoot = new Node();
+    cout << RRoot->getFileName() << endl;
+    RRoot = new Node(1);
+    cout << RRoot->getFileName() << endl;
 
     // Load session or build a new tree
     // ifstream sessionFile(SESSION_FILE);
@@ -319,8 +326,6 @@ int main() {
 
     // Process queries
     // processQuery();
-
-    cout << RRoot->getFileName();
 
     // Store the session
     // storeSession();
