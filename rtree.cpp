@@ -120,6 +120,12 @@ namespace RTree {
             // Set the fileCount
             static void setFileCount(long _fileCount) { Node::fileCount = _fileCount; }
 
+            // Get the lowerBound
+            static long getLowerBound() { return lowerBound; }
+
+            // Get the upperBound
+            static long getUpperBound() { return upperBound; }
+
         private:
             // Entries required to completely specify a node
             bool leaf = true;
@@ -151,11 +157,23 @@ namespace RTree {
             // Get the name of the file
             string getFileName() const { return NODE_PREFIX + to_string(fileIndex); };
 
+            // Get the childCount
+            long getChildCount() const { return childIndices.size(); }
+
             // Store the node to disk
             void storeNodeToDisk() const;
 
             // Read the node from the disk
             void loadNodeFromDisk();
+
+            // Print the node
+            void printNode() const;
+
+            // Insert an object to a leaf
+            void insertObject(DBObject object);
+
+            // Split a leaf node
+            void splitLeaf();
     };
 
     // The root of the tree
@@ -273,7 +291,8 @@ namespace RTree {
 
         // Retrieve lowerPoints
         lowerPoints.clear();
-        for (long i = 0, lowerPoint = 0; i < DIMENSION; ++i) {
+        double lowerPoint = 0;
+        for (long i = 0; i < DIMENSION; ++i) {
             memcpy((char *) &lowerPoint, buffer + location, sizeof(lowerPoint));
             lowerPoints.push_back(lowerPoint);
             location += sizeof(lowerPoint);
@@ -296,7 +315,8 @@ namespace RTree {
             // Load the child
             vector<double> childLowerPoint;
             vector<double> childUpperPoint;
-            for (long j = 0, lowerPoint = 0, upperPoint = 0; j < DIMENSION; ++j) {
+            double lowerPoint, upperPoint;
+            for (long j = 0; j < DIMENSION; ++j) {
                 memcpy((char *) &lowerPoint, buffer + location, sizeof(lowerPoint));
                 childLowerPoint.push_back(lowerPoint);
                 location += sizeof(lowerPoint);
@@ -308,6 +328,59 @@ namespace RTree {
             childLowerPoints.push_back(childLowerPoint);
             childUpperPoints.push_back(childUpperPoint);
         }
+    }
+
+    void Node::printNode() const {
+        cout << "Leaf: " << leaf << endl;
+        cout << "FileIndex: " << fileIndex << endl;
+        cout << "Parent: " << parentIndex << endl;
+        cout << "SizeOfSubtree: " << sizeOfSubtree << endl;
+
+        cout << "UpperPoints: ";
+        // Add the bounds of the MBR to the tree
+        for (auto upperPoint : upperPoints) {
+            cout << upperPoint << " ";
+        }
+        cout << endl;
+
+        cout << "LowerPoints: ";
+        for (auto lowerPoint : lowerPoints) {
+            cout << lowerPoint << " ";
+        }
+        cout << endl;
+
+        // Now we put the childIndices to the buffer
+        long numberOfChildren = childIndices.size();
+        for (long i = 0; i < numberOfChildren; ++i) {
+            cout << "Child " << i << ": " << endl;
+            cout << "\t Index: " << childIndices[i] << endl;
+
+            // Copy the given child
+            cout << "\t LowerPoints: ";
+            for (long j = 0; j < DIMENSION; ++j) {
+                cout << childLowerPoints[i][j] << " ";
+            }
+            cout << endl;
+
+            cout << "\t UpperPoints: ";
+            for (long j = 0; j < DIMENSION; ++j) {
+                cout << childUpperPoints[i][j] << " ";
+            }
+            cout << endl;
+        }
+    }
+
+    void Node::insertObject(DBObject object) {
+        // Update the in-memory node
+        childIndices.push_back(object.getFileIndex());
+        childLowerPoints.push_back(object.getPoint());
+        childUpperPoints.push_back(object.getPoint());
+
+        // Persist the changes to disk
+        storeNodeToDisk();
+    }
+
+    void Node::splitLeaf() {
     }
 
     // Store the current session to disk
@@ -371,6 +444,21 @@ namespace RTree {
         RRoot = new Node(fileIndex);
         RRoot->loadNodeFromDisk();
     }
+
+    // Insert a node into the tree
+    void insert(Node *root, DBObject object) {
+        // If the node is a leaf, then we insert
+        if (root->isLeaf()) {
+            // Insert the object
+            root->insertObject(object);
+
+            // Check for overflow
+            if (root->getChildCount() > Node::getUpperBound()) {
+                root->splitLeaf();
+            }
+        } else {
+        }
+    }
 };
 
 using namespace RTree;
@@ -381,12 +469,15 @@ int main() {
 
     // Create a new tree
     RRoot = new Node();
-    RRoot->storeNodeToDisk();
-    cout << RRoot->getFileName() << endl;
+
+    vector<double> p1 = {1,2};
+    insert(RRoot, DBObject(p1, "srijan"));
+    insert(RRoot, DBObject(p1, "srijan"));
+
     RRoot = new Node();
-    cout << RRoot->getFileName() << endl;
+    RRoot->printNode();
     RRoot = new Node(1);
-    cout << RRoot->getFileName() << endl;
+    RRoot->printNode();
 
     // Load session or build a new tree
     // ifstream sessionFile(SESSION_FILE);
