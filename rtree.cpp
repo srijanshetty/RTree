@@ -126,11 +126,11 @@ namespace RTree {
             long fileIndex = DEFAULT;
             long parentIndex = DEFAULT;
             long sizeOfSubtree = 0;
-            vector<long> upperPoints = vector<long>(DIMENSION, DEFAULT);
-            vector<long> lowerPoints = vector<long>(DIMENSION, DEFAULT);
-            vector<long> childIndices;
-            vector< vector<long> > childLowerPoints;
-            vector< vector<long> > childUpperPoints;
+            vector<double> upperPoints = vector<double>(DIMENSION, DEFAULT);
+            vector<double> lowerPoints = vector<double>(DIMENSION, DEFAULT);
+            vector<double> childIndices;
+            vector< vector<double> > childLowerPoints;
+            vector< vector<double> > childUpperPoints;
 
         public:
             // Construct a node object for the first time
@@ -294,8 +294,8 @@ namespace RTree {
             location += sizeof(childIndex);
 
             // Load the child
-            vector<long> childLowerPoint;
-            vector<long> childUpperPoint;
+            vector<double> childLowerPoint;
+            vector<double> childUpperPoint;
             for (long j = 0, lowerPoint = 0, upperPoint = 0; j < DIMENSION; ++j) {
                 memcpy((char *) &lowerPoint, buffer + location, sizeof(lowerPoint));
                 childLowerPoint.push_back(lowerPoint);
