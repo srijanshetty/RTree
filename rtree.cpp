@@ -111,19 +111,6 @@ namespace RTree {
     long Node::lowerBound = 0;
     long Node::upperBound = 0;
 
-    Node::Node() {
-        // Assign a fileIndex to the current node
-        fileIndex = ++fileCount;
-    }
-
-    Node::Node(long _fileIndex) {
-        // Assign the given fileIndex to the node
-        fileIndex = _fileIndex;
-
-        // Load the node from the disk
-        readNodeFromDisk();
-    }
-
     void Node::initialize() {
         // Save some place in the file for the header
         long headerSize =
@@ -142,6 +129,19 @@ namespace RTree {
         // TODO: clear this up
         upperBound = 10;
         lowerBound = 5;
+    }
+
+    Node::Node() {
+        // Assign a fileIndex to the current node
+        fileIndex = ++fileCount;
+    }
+
+    Node::Node(long _fileIndex) {
+        // Assign the given fileIndex to the node
+        fileIndex = _fileIndex;
+
+        // Load the node from the disk
+        readNodeFromDisk();
     }
 
     void Node::storeNodeToDisk() const {
