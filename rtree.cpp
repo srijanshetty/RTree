@@ -134,10 +134,13 @@ namespace RTree {
 
         public:
             // Construct a node object for the first time
-            Node ();
+            Node () : fileIndex(++fileCount) {}
 
             //  Read a node from disk
-            Node (long _fileIndex);
+            Node (long _fileIndex) : fileIndex(_fileIndex) {
+                // Load the node from the disk
+                loadNodeFromDisk();
+            }
 
             // Get the role of the node
             bool isLeaf() const { return leaf; }
@@ -181,19 +184,6 @@ namespace RTree {
         // TODO: clear this up
         upperBound = 10;
         lowerBound = 5;
-    }
-
-    Node::Node() {
-        // Assign a fileIndex to the current node
-        fileIndex = ++fileCount;
-    }
-
-    Node::Node(long _fileIndex) {
-        // Assign the given fileIndex to the node
-        fileIndex = _fileIndex;
-
-        // Load the node from the disk
-        loadNodeFromDisk();
     }
 
     void Node::storeNodeToDisk() const {
