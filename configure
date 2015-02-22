@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Get the original contents save the last three lines
+TEXT=$(head -n-2 config.h)
+
+# The first line of rtree.config gives us the PAGESIZE
+PAGESIZE=$(head -1 rtree.config)
+
+# The second line of rtree.config gives us the DIMENSION
+DIMENSION=$(tail -1 rtree.config)
+
+# Create a new config.h file
+rm -f config.h
+echo "$TEXT" > config.h
+echo "#define PAGESIZE ${PAGESIZE}" >> config.h
+echo "#define DIMENSION ${DIMENSION}" >> config.h
+
