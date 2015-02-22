@@ -132,8 +132,8 @@ namespace RTree {
             long fileIndex = DEFAULT;
             long parentIndex = DEFAULT;
             long sizeOfSubtree = 0;
-            vector<double> upperPoints = vector<double>(DIMENSION, DEFAULT);
-            vector<double> lowerPoints = vector<double>(DIMENSION, DEFAULT);
+            vector<double> upperPoints = vector<double>(DIMENSION, numeric_limits<double>::min());
+            vector<double> lowerPoints = vector<double>(DIMENSION, numeric_limits<double>::max());
             vector<double> childIndices;
             vector< vector<double> > childLowerPoints;
             vector< vector<double> > childUpperPoints;
@@ -283,7 +283,8 @@ namespace RTree {
 
         // Retrieve upperPoints
         upperPoints.clear();
-        for (long i = 0, upperPoint = 0; i < DIMENSION; ++i) {
+        double upperPoint = 0;
+        for (long i = 0; i < DIMENSION; ++i) {
             memcpy((char *) &upperPoint, buffer + location, sizeof(upperPoint));
             upperPoints.push_back(upperPoint);
             location += sizeof(upperPoint);
@@ -305,8 +306,8 @@ namespace RTree {
 
         // Now we get the childIndices from the buffer
         childIndices.clear();
-        lowerPoints.clear();
-        upperPoints.clear();
+        childLowerPoints.clear();
+        childUpperPoints.clear();
         for (long i = 0, childIndex = 0; i < numberOfChildren; ++i) {
             memcpy((char *) &childIndex, buffer + location, sizeof(childIndex));
             childIndices.push_back(childIndex);
@@ -371,10 +372,18 @@ namespace RTree {
     }
 
     void Node::insertObject(DBObject object) {
+        vector<double> objectPoint = object.getPoint();
+
         // Update the in-memory node
         childIndices.push_back(object.getFileIndex());
-        childLowerPoints.push_back(object.getPoint());
-        childUpperPoints.push_back(object.getPoint());
+        childLowerPoints.push_back(objectPoint);
+        childUpperPoints.push_back(objectPoint);
+
+        // Update the MBR of the node
+        for (long i = 0; i < DIMENSION; ++i) {
+            lowerPoints[i] = min(lowerPoints[i], objectPoint[i]);
+            upperPoints[i] = max(upperPoints[i], objectPoint[i]);
+        }
 
         // Persist the changes to disk
         storeNodeToDisk();
@@ -472,10 +481,8 @@ int main() {
 
     vector<double> p1 = {1,2};
     insert(RRoot, DBObject(p1, "srijan"));
-    insert(RRoot, DBObject(p1, "srijan"));
-
-    RRoot = new Node();
-    RRoot->printNode();
+    vector<double> p2 = {3,1};
+    insert(RRoot, DBObject(p2, "srijan"));
     RRoot = new Node(1);
     RRoot->printNode();
 
