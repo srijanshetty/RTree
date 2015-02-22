@@ -25,6 +25,7 @@
 
 // CONSTANTS
 #define NODE_PREFIX "leaves/leaf_"
+#define DEFAULT -1
 
 // Standard Streams
 #include <iostream>
@@ -50,6 +51,45 @@ using namespace std;
 
 namespace RTree {
     class Node {
+        private:
+            static long nodeCount;
+            static long lowerBound;
+            static long upperBound;
+
+        private:
+            // Entries required to completely specify a node
+            bool leaf = false;
+            long fileIndex = DEFAULT;
+            long parentIndex = DEFAULT;
+            long sizeOfSubtree = DEFAULT;
+            vector<long> upperPoints = vector<long>(DIMENSION, DEFAULT);
+            vector<long> lowerPoints = vector<long>(DIMENSION, DEFAULT);
+
+            // A node can store either of the below
+            vector<long> childIndices;
+            vector<long> objectIndices;
+
+        public:
+            // Construct a node object for the first time
+            Node ();
+
+            //  Read a node from disk
+            Node (long _fileIndex);
+
+            // Initialize the lower and upper bounds
+            static void initialize();
+
+            // Get the name of the file
+            string getFileName() { return NODE_PREFIX + to_string(fileIndex); };
+
+            // Get the role of the node
+            bool isLeaf() { return leaf; }
+
+            // Store the node to disk
+            void storeNodeToDisk();
+
+            // Read the node from the disk
+            void readNodeFromDisk();
     };
 };
 
