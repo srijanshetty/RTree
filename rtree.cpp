@@ -25,6 +25,7 @@
 
 // CONSTANTS
 #define NODE_PREFIX "leaves/leaf_"
+#define SESSION_FILE ".tree.session"
 #define DEFAULT -1
 
 // Standard Streams
@@ -52,9 +53,19 @@ using namespace std;
 namespace RTree {
     class Node {
         private:
-            static long nodeCount;
+            static long fileCount;
             static long lowerBound;
             static long upperBound;
+
+        public:
+            // Initialize the lower and upper bounds
+            static void initialize();
+
+            // Get the fileCount
+            static long getFileCount() { return fileCount; }
+
+            // Set the fileCount
+            static void setFileCount(long _fileCount) { Node::fileCount = _fileCount; }
 
         private:
             // Entries required to completely specify a node
@@ -76,33 +87,33 @@ namespace RTree {
             //  Read a node from disk
             Node (long _fileIndex);
 
-            // Initialize the lower and upper bounds
-            static void initialize();
+            // Get the role of the node
+            bool isLeaf() const { return leaf; }
+
+            // Get the index of the file
+            long getFileIndex() const { return fileIndex; }
 
             // Get the name of the file
-            string getFileName() { return NODE_PREFIX + to_string(fileIndex); };
-
-            // Get the role of the node
-            bool isLeaf() { return leaf; }
+            string getFileName() const { return NODE_PREFIX + to_string(fileIndex); };
 
             // Store the node to disk
-            void storeNodeToDisk();
+            void storeNodeToDisk() const;
 
             // Read the node from the disk
             void readNodeFromDisk();
     };
 
     // The root of the tree
-    Node *Rroot = nullptr;
+    Node *RRoot = nullptr;
 
-    // Initial value of the nodeCount
-    long Node::nodeCount = 0;
+    // Initial static values
+    long Node::fileCount = 0;
     long Node::lowerBound = 0;
     long Node::upperBound = 0;
 
     Node::Node() {
         // Assign a fileIndex to the current node
-        fileIndex = ++nodeCount;
+        fileIndex = ++fileCount;
     }
 
     Node::Node(long _fileIndex) {
@@ -133,7 +144,7 @@ namespace RTree {
         lowerBound = 5;
     }
 
-    void Node::storeNodeToDisk() {
+    void Node::storeNodeToDisk() const {
         char buffer[PAGESIZE];
         long location = 0;
 
@@ -236,14 +247,83 @@ namespace RTree {
             }
         }
     }
+
+    // Store the current session to disk
+    void storeSession() {
+        // Create a character buffer which will be written to disk
+        char buffer[PAGESIZE];
+        long location = 0;
+
+        // Store RRoot's fileIndex
+        long fileIndex = RRoot->getFileIndex();
+        memcpy(buffer + location, &fileIndex, sizeof(fileIndex));
+        location += sizeof(fileIndex);
+
+        // Store the global fileCount
+        long fileCount = Node::getFileCount();
+        memcpy(buffer + location, &fileCount, sizeof(fileCount));
+        location += sizeof(fileCount);
+
+        // Create a binary file and write to memory
+        ofstream sessionFile(SESSION_FILE, ios::binary | ios::out);
+        sessionFile.write(buffer, PAGESIZE);
+        sessionFile.close();
+    }
+
+    void loadSession() {
+        // Create a character buffer which will be written to disk
+        long location = 0;
+        char buffer[PAGESIZE];
+
+        // Open the binary file ane read into memory
+        ifstream sessionFile(SESSION_FILE, ios::binary | ios::in);
+        sessionFile.read(buffer, PAGESIZE);
+        sessionFile.close();
+
+        // Retrieve the fileIndex of RRoot
+        long fileIndex = 0;
+        memcpy((char *) &fileIndex, buffer + location, sizeof(fileIndex));
+        location += sizeof(fileIndex);
+
+        // Retreive the global fileCount
+        long fileCount = 0;
+        memcpy((char *) &fileCount, buffer + location, sizeof(fileCount));
+        location += sizeof(fileCount);
+
+        // Store the session variables
+        Node::setFileCount(fileCount);
+
+        // Delete the current root and load it from disk
+        delete RRoot;
+        RRoot = new Node(fileIndex);
+        RRoot->readNodeFromDisk();
+    }
 };
 
 using namespace RTree;
 
 int main() {
-    // Initialize the bounds before processing
+    // Initialize the BPlusTree module
     Node::initialize();
-    Rroot = new Node();
-    Rroot->storeNodeToDisk();
+
+    // Create a new tree
+    RRoot = new Node();
+
+    // Load session or build a new tree
+    // ifstream sessionFile(SESSION_FILE);
+    // if (sessionFile.good()) {
+        // loadSession();
+    // } else {
+        // buildTree();
+    // }
+
+    // Process queries
+    // processQuery();
+
+    cout << RRoot->getFileName();
+
+    // Store the session
+    // storeSession();
+
     return 0;
 }
