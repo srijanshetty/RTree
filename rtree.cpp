@@ -143,10 +143,7 @@ namespace RTree {
             Node () : fileIndex(++fileCount) {}
 
             //  Read a node from disk
-            Node (long _fileIndex) : fileIndex(_fileIndex) {
-                // Load the node from the disk
-                loadNodeFromDisk();
-            }
+            Node (long _fileIndex) : fileIndex(_fileIndex) { loadNodeFromDisk(); }
 
             // Get the role of the node
             bool isLeaf() const { return leaf; }
@@ -178,8 +175,8 @@ namespace RTree {
             // Insert an object to a leaf
             void insertObject(DBObject object);
 
-            // Split a leaf node
-            void splitLeaf();
+            // Split a node
+            void splitNode();
     };
 
     // The root of the tree
@@ -412,6 +409,9 @@ namespace RTree {
     void Node::insertObject(DBObject object) {
         vector<double> objectPoint = object.getPoint();
 
+        // Increment the sizeOfSubtree
+        sizeOfSubtree++;
+
         // Update the in-memory node
         childIndices.push_back(object.getFileIndex());
         childLowerPoints.push_back(objectPoint);
@@ -427,7 +427,7 @@ namespace RTree {
         storeNodeToDisk();
     }
 
-    void Node::splitLeaf() {
+    void Node::splitNode() {
     }
 
     // Store the current session to disk
@@ -501,7 +501,7 @@ namespace RTree {
 
             // Check for overflow
             if (root->getChildCount() > Node::getUpperBound()) {
-                root->splitLeaf();
+                root->splitNode();
             }
         } else {
         }
