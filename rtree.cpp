@@ -39,6 +39,7 @@
 #include <vector>
 #include <queue>
 #include <algorithm>
+#include <tuple>
 
 // Math
 #include <math.h>
@@ -73,13 +74,12 @@ namespace RTree {
             bool leaf = true;
             long fileIndex = DEFAULT;
             long parentIndex = DEFAULT;
-            long sizeOfSubtree = DEFAULT;
+            long sizeOfSubtree = 0;
             vector<long> upperPoints = vector<long>(DIMENSION, DEFAULT);
             vector<long> lowerPoints = vector<long>(DIMENSION, DEFAULT);
-
-            // A node can store either of the below
             vector<long> childIndices;
-            vector<long> objectIndices;
+            vector< vector<long> > childLowerPoints;
+            vector< vector<long> > childUpperPoints;
 
         public:
             // Construct a node object for the first time
@@ -173,17 +173,23 @@ namespace RTree {
             location += sizeof(lowerPoint);
         }
 
-        // We store the objects for a leaf and children for internal node
-        if (!leaf) {
-            // We have to store the bumber of children so that we can load them properly
-            long numberOfChildren = childIndices.size();
-            memcpy(buffer + location, &numberOfChildren, sizeof(numberOfChildren));
-            location += sizeof(numberOfChildren);
+        // We have to store the bumber of children so that we can load them properly
+        long numberOfChildren = childIndices.size();
+        memcpy(buffer + location, &numberOfChildren, sizeof(numberOfChildren));
+        location += sizeof(numberOfChildren);
 
-            // Now we get the childIndices from the buffer
-            for (long i = 0, childIndex = 0; i < numberOfChildren; ++i) {
-                memcpy(buffer + location, &childIndex, sizeof(childIndex));
-                location += sizeof(childIndex);
+        // Now we put the childIndices to the buffer
+        for (long i = 0, childIndex = 0; i < numberOfChildren; ++i) {
+            memcpy(buffer + location, &childIndex, sizeof(childIndex));
+            location += sizeof(childIndex);
+
+            // Copy the given child
+            for (long j = 0; j < DIMENSION; ++j) {
+                memcpy(buffer + location, &childLowerPoints[i][j], sizeof(childLowerPoints[i][j]));
+                location += sizeof(childLowerPoints[i][j]);
+
+                memcpy(buffer + location, &childUpperPoints[i][j], sizeof(childUpperPoints[i][j]));
+                location += sizeof(childUpperPoints[i][j]);
             }
         }
 
@@ -232,20 +238,34 @@ namespace RTree {
             location += sizeof(lowerPoint);
         }
 
-        // We load the objects for a leaf and children for internal node
-        if (!leaf) {
-            // We need to get the number of children in this case
-            long numberOfChildren = 0;
-            memcpy((char *) &numberOfChildren, buffer + location, sizeof(numberOfChildren));
-            location += sizeof(numberOfChildren);
+        // We need to get the number of children in this case
+        long numberOfChildren = 0;
+        memcpy((char *) &numberOfChildren, buffer + location, sizeof(numberOfChildren));
+        location += sizeof(numberOfChildren);
 
-            // Now we get the childIndices from the buffer
-            childIndices.clear();
-            for (long i = 0, childIndex = 0; i < numberOfChildren; ++i) {
-                memcpy((char *) &childIndex, buffer + location, sizeof(childIndex));
-                childIndices.push_back(childIndex);
-                location += sizeof(childIndex);
+        // Now we get the childIndices from the buffer
+        childIndices.clear();
+        lowerPoints.clear();
+        upperPoints.clear();
+        for (long i = 0, childIndex = 0; i < numberOfChildren; ++i) {
+            memcpy((char *) &childIndex, buffer + location, sizeof(childIndex));
+            childIndices.push_back(childIndex);
+            location += sizeof(childIndex);
+
+            // Load the child
+            vector<long> childLowerPoint;
+            vector<long> childUpperPoint;
+            for (long j = 0, lowerPoint = 0, upperPoint = 0; j < DIMENSION; ++j) {
+                memcpy((char *) &lowerPoint, buffer + location, sizeof(lowerPoint));
+                childLowerPoint.push_back(lowerPoint);
+                location += sizeof(lowerPoint);
+
+                memcpy((char *) &upperPoint, buffer + location, sizeof(upperPoint));
+                childUpperPoint.push_back(upperPoint);
+                location += sizeof(upperPoint);
             }
+            childLowerPoints.push_back(childLowerPoint);
+            childUpperPoints.push_back(childUpperPoint);
         }
     }
 
@@ -319,9 +339,9 @@ int main() {
     // Load session or build a new tree
     // ifstream sessionFile(SESSION_FILE);
     // if (sessionFile.good()) {
-        // loadSession();
+    // loadSession();
     // } else {
-        // buildTree();
+    // buildTree();
     // }
 
     // Process queries
