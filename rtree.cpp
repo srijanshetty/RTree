@@ -161,38 +161,80 @@ namespace RTree {
             location += sizeof(lowerPoint);
         }
 
-        // For the leaf we store objectPointers, else we store children
+        // We store the objects for a leaf and children for internal node
         if (!leaf) {
-            // We will have to store the number of children for each node
+            // We have to store the bumber of children so that we can load them properly
             long numberOfChildren = childIndices.size();
             memcpy(buffer + location, &numberOfChildren, sizeof(numberOfChildren));
             location += sizeof(numberOfChildren);
 
-            // Now we store the children of the current element
-            for (auto childIndex : childIndices) {
+            // Now we get the childIndices from the buffer
+            for (long i = 0, childIndex = 0; i < numberOfChildren; ++i) {
                 memcpy(buffer + location, &childIndex, sizeof(childIndex));
                 location += sizeof(childIndex);
-            }
-        } else {
-            // We will have to store the number of objects for each leaf
-            long numberOfObjects = objectIndices.size();
-            memcpy(buffer + location, &numberOfObjects, sizeof(numberOfObjects));
-            location += sizeof(numberOfObjects);
-
-            // Now we store the children of the current element
-            for (auto objectIndex : objectIndices) {
-                memcpy(buffer + location, &objectIndex, sizeof(objectIndex));
-                location += sizeof(objectIndex);
             }
         }
 
         // Now we copy the buffer to disk
-        ofstream ofile(getFileName(), ios::binary | ios::out);
-        ofile.write(buffer, PAGESIZE);
-        ofile.close();
+        ofstream nodeFile(getFileName(), ios::binary | ios::out);
+        nodeFile.write(buffer, PAGESIZE);
+        nodeFile.close();
     }
 
     void Node::readNodeFromDisk() {
+        // Create a char buffer to read contents from disk
+        char buffer[PAGESIZE];
+        long location = 0;
+
+        // Open the binary file ane read into memory
+        ifstream nodeFile(getFileName(), ios::binary | ios::in);
+        nodeFile.read(buffer, PAGESIZE);
+        nodeFile.close();
+
+        // Retrieve the contents
+        memcpy((char *) &leaf, buffer + location, sizeof(leaf));
+        location += sizeof(leaf);
+
+        memcpy((char *) &fileIndex, buffer + location, sizeof(fileIndex));
+        location += sizeof(fileIndex);
+
+        memcpy((char *) &parentIndex, buffer + location, sizeof(parentIndex));
+        location += sizeof(parentIndex);
+
+        memcpy((char *) &sizeOfSubtree, buffer + location, sizeof(sizeOfSubtree));
+        location += sizeof(sizeOfSubtree);
+
+        // Retrieve upperPoints
+        upperPoints.clear();
+        for (long i = 0, upperPoint = 0; i < DIMENSION; ++i) {
+            memcpy((char *) &upperPoint, buffer + location, sizeof(upperPoint));
+            upperPoints.push_back(upperPoint);
+            location += sizeof(upperPoint);
+        }
+
+        // Retrieve lowerPoints
+        lowerPoints.clear();
+        for (long i = 0, lowerPoint = 0; i < DIMENSION; ++i) {
+            memcpy((char *) &lowerPoint, buffer + location, sizeof(lowerPoint));
+            lowerPoints.push_back(lowerPoint);
+            location += sizeof(lowerPoint);
+        }
+
+        // We load the objects for a leaf and children for internal node
+        if (!leaf) {
+            // We need to get the number of children in this case
+            long numberOfChildren = 0;
+            memcpy((char *) &numberOfChildren, buffer + location, sizeof(numberOfChildren));
+            location += sizeof(numberOfChildren);
+
+            // Now we get the childIndices from the buffer
+            childIndices.clear();
+            for (long i = 0, childIndex = 0; i < numberOfChildren; ++i) {
+                memcpy((char *) &childIndex, buffer + location, sizeof(childIndex));
+                childIndices.push_back(childIndex);
+                location += sizeof(childIndex);
+            }
+        }
     }
 };
 
