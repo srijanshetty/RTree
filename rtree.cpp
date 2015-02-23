@@ -29,6 +29,11 @@
 #define OBJECT_FILE "objects/objectFile"
 #define DEFAULT -1
 
+// If the DEBUG level is VERBOSE then it is automatically normal
+#ifdef DEBUG_VERBOSE
+#define DEBUG_NORMAL
+#endif
+
 // Standard Streams
 #include <iostream>
 #include <fstream>
@@ -381,6 +386,7 @@ namespace RTree {
         }
     }
 
+#ifdef DEBUG_NORMAL
     void Node::printNode() const {
         cout << "Leaf: " << leaf << endl;
         cout << "FileIndex: " << fileIndex << endl;
@@ -420,7 +426,9 @@ namespace RTree {
             cout << endl;
         }
     }
+#endif
 
+#ifdef DEBUG_NORMAL
    void Node::serialize() const {
         // Return if node is empty
         if (childIndices.size() == 0) {
@@ -508,7 +516,11 @@ namespace RTree {
             copy(point.begin(), point.end(), ostream_iterator<double>(cout, " "));
             cout << ") ";
         }
+
+        // Prettify
+        cout << endl << endl;
    }
+#endif
 
    void Node::updateMBR(vector<double> point) {
        // Increment the sizeOfSubtree
@@ -617,6 +629,11 @@ namespace RTree {
            if (root->getChildCount() > Node::getUpperBound()) {
                root->splitNode();
            }
+
+#ifdef DEBUG_VERBOSE
+            // Serialize
+            RRoot->serialize();
+#endif
        } else {
            // We traverse the tree
            long position = root->getInsertPosition(object.getPoint());
@@ -648,7 +665,6 @@ int main() {
     insert(RRoot, DBObject(p2, "srijan"));
     insert(RRoot, DBObject(p2, "srijan"));
     RRoot = new Node(1);
-    RRoot->serialize();
     // RRoot->printNode();
 
     // Load session or build a new tree

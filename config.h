@@ -28,7 +28,7 @@
 
 // -- Verbosity Level --
 // #define DEBUG_NORMAL
-// #define DEBUG_VERBOSE
+#define DEBUG_VERBOSE
 
 // -- Auto Generated --
 #define PAGESIZE 2048
