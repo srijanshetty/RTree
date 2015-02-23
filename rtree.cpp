@@ -41,6 +41,7 @@
 #include <queue>
 #include <algorithm>
 #include <tuple>
+#include <iterator>
 
 // Math
 #include <math.h>
@@ -134,9 +135,11 @@ namespace RTree {
             long sizeOfSubtree = 0;
             vector<double> upperPoints = vector<double>(DIMENSION, numeric_limits<double>::min());
             vector<double> lowerPoints = vector<double>(DIMENSION, numeric_limits<double>::max());
-            vector<double> childIndices;
             vector< vector<double> > childLowerPoints;
             vector< vector<double> > childUpperPoints;
+
+        public:
+            vector<long> childIndices;
 
         public:
             // Construct a node object for the first time
@@ -157,6 +160,9 @@ namespace RTree {
             // Get the childCount
             long getChildCount() const { return childIndices.size(); }
 
+            // Increment the size of subTree
+            void incrementSubtree() { ++sizeOfSubtree; }
+
             // Get the volume of MBR
             double getVolume() const;
 
@@ -171,6 +177,15 @@ namespace RTree {
 
             // Print the node
             void printNode() const;
+
+            // Serialize the tree
+            void serialize() const;
+
+            // Get the position of insertion of a point
+            long getInsertPosition(vector<double> point) const;
+
+            // Update the MBR of a node
+            void updateMBR(vector<double> point);
 
             // Insert an object to a leaf
             void insertObject(DBObject object);
@@ -273,9 +288,9 @@ namespace RTree {
         location += sizeof(numberOfChildren);
 
         // Now we put the childIndices to the buffer
-        for (long i = 0, childIndex = 0; i < numberOfChildren; ++i) {
-            memcpy(buffer + location, &childIndex, sizeof(childIndex));
-            location += sizeof(childIndex);
+        for (long i = 0; i < numberOfChildren; ++i) {
+            memcpy(buffer + location, &childIndices[i], sizeof(childIndices[i]));
+            location += sizeof(childIndices[i]);
 
             // Copy the given child
             for (long j = 0; j < DIMENSION; ++j) {
@@ -406,106 +421,216 @@ namespace RTree {
         }
     }
 
-    void Node::insertObject(DBObject object) {
-        vector<double> objectPoint = object.getPoint();
-
-        // Increment the sizeOfSubtree
-        sizeOfSubtree++;
-
-        // Update the in-memory node
-        childIndices.push_back(object.getFileIndex());
-        childLowerPoints.push_back(objectPoint);
-        childUpperPoints.push_back(objectPoint);
-
-        // Update the MBR of the node
-        for (long i = 0; i < DIMENSION; ++i) {
-            lowerPoints[i] = min(lowerPoints[i], objectPoint[i]);
-            upperPoints[i] = max(upperPoints[i], objectPoint[i]);
+   void Node::serialize() const {
+        // Return if node is empty
+        if (childIndices.size() == 0) {
+            return;
         }
 
-        // Persist the changes to disk
-        storeNodeToDisk();
-    }
+        // Prettify
+        cout << endl << endl;
 
-    void Node::splitNode() {
-    }
+        // To store the previous Level
+        queue< pair<long, char> > previousLevel;
+        previousLevel.push(make_pair(fileIndex, 'N'));
 
-    // Store the current session to disk
-    void storeSession() {
-        // Create a character buffer which will be written to disk
-        char buffer[PAGESIZE];
-        long location = 0;
+        // To store the leaves
+        queue< pair< vector<double>, char> > leaves;
 
-        // Store RRoot's fileIndex
-        long fileIndex = RRoot->getFileIndex();
-        memcpy(buffer + location, &fileIndex, sizeof(fileIndex));
-        location += sizeof(fileIndex);
+        long currentIndex;
+        Node *iterator;
+        char type;
+        while (!previousLevel.empty()) {
+            queue< pair<long, char> > nextLevel;
 
-        // Store the global fileCount
-        long fileCount = Node::getFileCount();
-        memcpy(buffer + location, &fileCount, sizeof(fileCount));
-        location += sizeof(fileCount);
+            while (!previousLevel.empty()) {
+                // Get the front and pop
+                currentIndex = previousLevel.front().first;
+                iterator = new Node(currentIndex);
+                type = previousLevel.front().second;
+                previousLevel.pop();
 
-        // Store the global objectCount
-        long objectCount = DBObject::getObjectCount();
-        memcpy(buffer + location, &objectCount, sizeof(objectCount));
-        location += sizeof(objectCount);
+                // If it a seperator, print and move ahead
+                if (type == '|') {
+                    cout << "|| ";
+                    continue;
+                }
 
-        // Create a binary file and write to memory
-        ofstream sessionFile(SESSION_FILE, ios::binary | ios::out);
-        sessionFile.write(buffer, PAGESIZE);
-        sessionFile.close();
-    }
+                // Print the MBR
+                cout << "[( ";
+                copy(upperPoints.begin(), upperPoints.end(), ostream_iterator<double>(cout, " "));
+                cout << "),( ";
+                copy(lowerPoints.begin(), lowerPoints.end(), ostream_iterator<double>(cout, " "));
+                cout << ")]";
 
-    void loadSession() {
-        // Create a character buffer which will be written to disk
-        long location = 0;
-        char buffer[PAGESIZE];
+                if (!leaf) {
+                    // Enqueue all the children
+                    for (auto childIndex : iterator->childIndices) {
+                        nextLevel.push(make_pair(childIndex, 'N'));
 
-        // Open the binary file ane read into memory
-        ifstream sessionFile(SESSION_FILE, ios::binary | ios::in);
-        sessionFile.read(buffer, PAGESIZE);
-        sessionFile.close();
+                        // Insert a marker to indicate end of child
+                        nextLevel.push(make_pair(DEFAULT, '|'));
+                    }
+                } else {
+                    // Add all child points to the leaf
+                    for (auto childPoint : childLowerPoints) {
+                        leaves.push(make_pair(childPoint, 'L'));
+                    }
 
-        // Retrieve the fileIndex of RRoot
-        long fileIndex = 0;
-        memcpy((char *) &fileIndex, buffer + location, sizeof(fileIndex));
-        location += sizeof(fileIndex);
+                    // marker for end of leaf
+                    leaves.push(make_pair(vector<double>(), '|'));
+                }
 
-        // Retreive the global fileCount
-        long fileCount = 0;
-        memcpy((char *) &fileCount, buffer + location, sizeof(fileCount));
-        location += sizeof(fileCount);
-
-        // Retreive the global objectCount
-        long objectCount = 0;
-        memcpy((char *) &objectCount, buffer + location, sizeof(objectCount));
-        location += sizeof(objectCount);
-
-        // Store the session variables
-        Node::setFileCount(fileCount);
-        DBObject::setObjectCount(objectCount);
-
-        // Delete the current root and load it from disk
-        delete RRoot;
-        RRoot = new Node(fileIndex);
-        RRoot->loadNodeFromDisk();
-    }
-
-    // Insert a node into the tree
-    void insert(Node *root, DBObject object) {
-        // If the node is a leaf, then we insert
-        if (root->isLeaf()) {
-            // Insert the object
-            root->insertObject(object);
-
-            // Check for overflow
-            if (root->getChildCount() > Node::getUpperBound()) {
-                root->splitNode();
+                // Delete allocated memory
+                delete iterator;
             }
-        } else {
+
+            // Seperate different levels
+            cout << endl << endl;
+            previousLevel = nextLevel;
         }
-    }
+
+        // Print all the leaves
+        while (!leaves.empty()) {
+            // Get the front and pop
+            vector<double> point = leaves.front().first;
+            type = leaves.front().second;
+            leaves.pop();
+
+            // If it a seperator, print and move ahead
+            if (type == '|') {
+                cout << "|| ";
+                continue;
+            }
+
+            // Print the MBR
+            cout << "( ";
+            copy(point.begin(), point.end(), ostream_iterator<double>(cout, " "));
+            cout << ") ";
+        }
+   }
+
+   void Node::updateMBR(vector<double> point) {
+       // Increment the sizeOfSubtree
+       incrementSubtree();
+
+       for (long i = 0; i < DIMENSION; ++i) {
+           // lowerPoint is the min of existing and point
+           lowerPoints[i] = min(lowerPoints[i], point[i]);
+
+           // upperPoint is max of existing and point
+           upperPoints[i] = max(upperPoints[i], point[i]);
+       }
+   }
+
+   long Node::getInsertPosition(vector<double> point) const {
+   }
+
+   void Node::insertObject(DBObject object) {
+       vector<double> objectPoint = object.getPoint();
+
+       // Update the in-memory node
+       childIndices.push_back(object.getFileIndex());
+       childLowerPoints.push_back(objectPoint);
+       childUpperPoints.push_back(objectPoint);
+
+       // udpate the MBR
+       updateMBR(objectPoint);
+
+       // Persist the changes to disk
+       storeNodeToDisk();
+   }
+
+   void Node::splitNode() {
+   }
+
+   // Store the current session to disk
+   void storeSession() {
+       // Create a character buffer which will be written to disk
+       char buffer[PAGESIZE];
+       long location = 0;
+
+       // Store RRoot's fileIndex
+       long fileIndex = RRoot->getFileIndex();
+       memcpy(buffer + location, &fileIndex, sizeof(fileIndex));
+       location += sizeof(fileIndex);
+
+       // Store the global fileCount
+       long fileCount = Node::getFileCount();
+       memcpy(buffer + location, &fileCount, sizeof(fileCount));
+       location += sizeof(fileCount);
+
+       // Store the global objectCount
+       long objectCount = DBObject::getObjectCount();
+       memcpy(buffer + location, &objectCount, sizeof(objectCount));
+       location += sizeof(objectCount);
+
+       // Create a binary file and write to memory
+       ofstream sessionFile(SESSION_FILE, ios::binary | ios::out);
+       sessionFile.write(buffer, PAGESIZE);
+       sessionFile.close();
+   }
+
+   void loadSession() {
+       // Create a character buffer which will be written to disk
+       long location = 0;
+       char buffer[PAGESIZE];
+
+       // Open the binary file ane read into memory
+       ifstream sessionFile(SESSION_FILE, ios::binary | ios::in);
+       sessionFile.read(buffer, PAGESIZE);
+       sessionFile.close();
+
+       // Retrieve the fileIndex of RRoot
+       long fileIndex = 0;
+       memcpy((char *) &fileIndex, buffer + location, sizeof(fileIndex));
+       location += sizeof(fileIndex);
+
+       // Retreive the global fileCount
+       long fileCount = 0;
+       memcpy((char *) &fileCount, buffer + location, sizeof(fileCount));
+       location += sizeof(fileCount);
+
+       // Retreive the global objectCount
+       long objectCount = 0;
+       memcpy((char *) &objectCount, buffer + location, sizeof(objectCount));
+       location += sizeof(objectCount);
+
+       // Store the session variables
+       Node::setFileCount(fileCount);
+       DBObject::setObjectCount(objectCount);
+
+       // Delete the current root and load it from disk
+       delete RRoot;
+       RRoot = new Node(fileIndex);
+       RRoot->loadNodeFromDisk();
+   }
+
+   // Insert a node into the tree
+   void insert(Node *root, DBObject object) {
+       // If the node is a leaf, then we insert
+       if (root->isLeaf()) {
+           // Insert the object
+           root->insertObject(object);
+
+           // Check for overflow
+           if (root->getChildCount() > Node::getUpperBound()) {
+               root->splitNode();
+           }
+       } else {
+           // We traverse the tree
+           long position = root->getInsertPosition(object.getPoint());
+
+           // Load the node from disk
+           Node *nextRoot = new Node(root->childIndices[position]);
+
+           // Recurse into the node
+           insert(nextRoot, object);
+
+           // Clean up
+           delete nextRoot;
+       }
+   }
 };
 
 using namespace RTree;
@@ -521,8 +646,10 @@ int main() {
     insert(RRoot, DBObject(p1, "srijan"));
     vector<double> p2 = {3,1};
     insert(RRoot, DBObject(p2, "srijan"));
+    insert(RRoot, DBObject(p2, "srijan"));
     RRoot = new Node(1);
-    RRoot->printNode();
+    RRoot->serialize();
+    // RRoot->printNode();
 
     // Load session or build a new tree
     // ifstream sessionFile(SESSION_FILE);
