@@ -158,6 +158,9 @@ namespace RTree {
             // Get the role of the node
             bool isLeaf() const { return leaf; }
 
+            // Set to internal Node
+            void setInternal() { leaf = false; }
+
             // Get the index of the file
             long getFileIndex() const { return fileIndex; }
 
@@ -472,6 +475,11 @@ namespace RTree {
    }
 
    void Node::resizeMBR() {
+       lowerCoordinates.clear();
+       upperCoordinates.clear();
+       upperCoordinates = vector<double>(DIMENSION, numeric_limits<double>::min());
+       lowerCoordinates = vector<double>(DIMENSION, numeric_limits<double>::max());
+
        // update the MBR
        for (long i = 0; i < (long) childIndices.size(); ++i) {
            for (long j = 0; j < DIMENSION; ++j) {
@@ -716,22 +724,89 @@ namespace RTree {
            }
        }
 
-       // All the points belonging to the firstSplit go to firstChild
-#ifdef DEBUG_VERBOSE
-       cout << "SplitNode: " << endl;
-       cout << "FirstSplit: ";
-       for (auto vectorIndex : firstSplit) {
-           cout << " " << vectorIndex;
-       }
-       cout << endl;
-
-       cout << "SecondSplit: ";
+       // Create a surrogate node for the secondSplit
+       Node *surrogateNode = new Node();
        for (auto vectorIndex : secondSplit) {
-           cout << " " << vectorIndex;
+           // Add child to surrogate
+           surrogateNode->childIndices.push_back(childIndices[vectorIndex]);
+           surrogateNode->childUpperPoints.push_back(childUpperPoints[vectorIndex]);
+           surrogateNode->childLowerPoints.push_back(childLowerPoints[vectorIndex]);
        }
-       cout << endl;
-#endif
 
+       // Update the children of this
+       vector<long> tempChildIndices;
+       vector< vector<double> > tempChildUpperPoints;
+       vector< vector<double> > tempChildLowerPoints;
+       for (auto vectorIndex : firstSplit) {
+           // Add these children to this
+           tempChildIndices.push_back(childIndices[vectorIndex]);
+           tempChildUpperPoints.push_back(childUpperPoints[vectorIndex]);
+           tempChildLowerPoints.push_back(childLowerPoints[vectorIndex]);
+       }
+       childIndices.clear();
+       childLowerPoints.clear();
+       childUpperPoints.clear();
+       childIndices = tempChildIndices;
+       childLowerPoints = tempChildLowerPoints;
+       childUpperPoints = tempChildUpperPoints;
+
+       // Resize the surrogate Node and store to disk
+       surrogateNode->setParentIndex(parentIndex);
+
+       // TODO : Size of subtree
+       // TODO : Size of subtree of this
+
+       // Fix the MBR
+       this->resizeMBR();
+       surrogateNode->resizeMBR();
+
+       // We have to insert the newly created surrogate into the parent
+       if (parentIndex == DEFAULT) {
+           // Create a new parent
+           Node *parentNode = new Node();
+
+           // The parent node is not a leaf node
+           parentNode->setInternal();
+
+           // Update the parent for both
+           this->setParentIndex(parentNode->getFileIndex());
+           surrogateNode->setParentIndex(parentNode->getFileIndex());
+
+           // Update the parentNode with two children
+           parentNode->insertNode(this);
+           parentNode->insertNode(surrogateNode);
+
+           // Store the changes made to the parent
+           this->storeNodeToDisk();
+           surrogateNode->storeNodeToDisk();
+           parentNode->storeNodeToDisk();
+
+           // Update RRoot
+           delete RRoot;
+           RRoot = parentNode;
+       } else {
+           // Insert the new node into the existing parent
+           Node *parentNode = new Node(parentIndex);
+
+           // Update the parent Node
+           parentNode->insertNode(surrogateNode);
+
+           // Store the changes made to the parent
+           surrogateNode->storeNodeToDisk();
+           this->storeNodeToDisk();
+           parentNode->storeNodeToDisk();
+
+           // If the updated parentNode is the root
+           if (parentNode->getFileIndex() == RRoot->getFileIndex()) {
+               delete RRoot;
+               RRoot = parentNode;
+           } else {
+               delete parentNode;
+           }
+       }
+
+       // Store the node to disk and delete the pointer
+       delete surrogateNode;
    }
 
    // Store the current session to disk
