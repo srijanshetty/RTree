@@ -686,8 +686,8 @@ namespace RTree {
            }
 
 #ifdef DEBUG_VERBOSE
-            // Serialize
-            RRoot->serialize();
+           // Serialize
+           RRoot->serialize();
 #endif
        } else {
            // We traverse the tree
@@ -699,7 +699,7 @@ namespace RTree {
            // Recurse into the node
            insert(nextRoot, object);
 
-           // Clean up
+           // Store the changes made to the node to disk and clean up
            delete nextRoot;
        }
    }
