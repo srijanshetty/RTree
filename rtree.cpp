@@ -170,8 +170,17 @@ namespace RTree {
             // Increment the size of subTree
             void incrementSubtree() { ++sizeOfSubtree; }
 
+            // Set the size of the subtree
+            void setSizeOfSubtree(long _sizeOfSubtree) { sizeOfSubtree = _sizeOfSubtree; }
+
+            // Set the parentIndex
+            void setParentIndex(long _parentIndex) { parentIndex = _parentIndex; }
+
             // Get the volume of MBR
             double getVolume() const;
+
+            // Get the volume of two passed points
+            double getVolume (vector<double> upperPoint, vector<double> lowerPoint) const;
 
             // Distance of Point
             double getDistanceOfPoint(vector<double> point) const;
@@ -189,7 +198,7 @@ namespace RTree {
             void serialize() const;
 
             // Get the position of insertion of a point
-            long getInsertPosition(vector<double> point) const;
+            long getPointPosition(vector<double> point) const;
 
             // Update the MBR of a node
             void updateMBR(vector<double> point);
@@ -235,11 +244,17 @@ namespace RTree {
 
     double Node::getVolume() const {
         double volume = 1;
-
         for (long i = 0; i < DIMENSION; ++i) {
             volume *= (upperCoordinates[i] - lowerCoordinates[i]);
         }
+        return volume;
+    }
 
+    double Node::getVolume(vector<double> upperPoint, vector<double> lowerPoint) const {
+        double volume = 1;
+        for (long i = 0; i < DIMENSION; ++i) {
+            volume *= abs(upperPoint[i] - lowerPoint[i]);
+        }
         return volume;
     }
 
@@ -575,7 +590,7 @@ namespace RTree {
        }
    }
 
-   long Node::getInsertPosition(vector<double> point) const {
+   long Node::getPointPosition(vector<double> point) const {
    }
 
    void Node::insertObject(DBObject object) {
@@ -676,7 +691,7 @@ namespace RTree {
 #endif
        } else {
            // We traverse the tree
-           long position = root->getInsertPosition(object.getPoint());
+           long position = root->getPointPosition(object.getPoint());
 
            // Load the node from disk
            Node *nextRoot = new Node(root->childIndices[position]);
