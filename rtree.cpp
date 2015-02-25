@@ -642,6 +642,92 @@ namespace RTree {
                }
            }
        }
+
+       // Add the firstSeed to the split
+       vector<long> firstSplit = { firstSeed };
+       vector<long> secondSplit = { secondSeed };
+
+       // We compute the wastage of all other points with the seed
+       double firstSeedVolume = getVolume(childUpperPoints[firstSeed], childLowerPoints[firstSeed]);
+       double secondSeedVolume = getVolume(childUpperPoints[secondSeed], childLowerPoints[secondSeed]);
+       double firstSeedWaste, secondSeedWaste;
+       long i = 0; // We will need i later
+       for (; i < size && ((long)firstSplit.size() < upperBound - lowerBound + 1)
+               && ((long) secondSplit.size() < upperBound - lowerBound + 1) ; ++i) {
+           // We don't have to reconsider the seeds
+           if (i == firstSeed || i == secondSeed) {
+               continue;
+           }
+
+           // Get the covering rectangle of firstSeed and point
+           maxCoordinates.clear();
+           minCoordinates.clear();
+           for (long k = 0; k < DIMENSION; ++k) {
+               maxCoordinates.push_back(max(childUpperPoints[firstSeed][k], childUpperPoints[i][k]));
+               minCoordinates.push_back(min(childLowerPoints[firstSeed][k], childLowerPoints[i][k]));
+           }
+
+           firstSeedWaste = getVolume(maxCoordinates, minCoordinates)
+               - firstSeedVolume
+               - getVolume(childUpperPoints[i], childLowerPoints[i]);
+
+           // Get the covering rectangle of secondSeed and point
+           maxCoordinates.clear();
+           minCoordinates.clear();
+           for (long k = 0; k < DIMENSION; ++k) {
+               maxCoordinates.push_back(max(childUpperPoints[secondSeed][k], childUpperPoints[i][k]));
+               minCoordinates.push_back(min(childLowerPoints[secondSeed][k], childLowerPoints[i][k]));
+           }
+
+           secondSeedWaste = getVolume(maxCoordinates, minCoordinates)
+               - secondSeedVolume
+               - getVolume(childUpperPoints[i], childLowerPoints[i]);
+
+           // If the firsSeedWaste is lesser, we add the node to the first split
+           if (firstSeedWaste < secondSeedWaste) {
+               firstSplit.push_back(i);
+           } else {
+               secondSplit.push_back(i);
+           }
+       }
+
+       // Push the remaining vectors into one of the splits
+       if ((long) firstSplit.size() >= upperBound - lowerBound + 1) {
+           for (;i < size; ++i) {
+               // We don't want to push the secondSeed again
+               if (i == firstSeed || i == secondSeed ) {
+                   continue;
+               }
+
+               secondSplit.push_back(i);
+           }
+       } else {
+           for (;i < size; ++i) {
+               // We don't want to push the firstSeed again
+               if (i == firstSeed || i == secondSeed ) {
+                   continue;
+               }
+
+               firstSplit.push_back(i);
+           }
+       }
+
+       // All the points belonging to the firstSplit go to firstChild
+#ifdef DEBUG_VERBOSE
+       cout << "SplitNode: " << endl;
+       cout << "FirstSplit: ";
+       for (auto vectorIndex : firstSplit) {
+           cout << " " << vectorIndex;
+       }
+       cout << endl;
+
+       cout << "SecondSplit: ";
+       for (auto vectorIndex : secondSplit) {
+           cout << " " << vectorIndex;
+       }
+       cout << endl;
+#endif
+
    }
 
    // Store the current session to disk
