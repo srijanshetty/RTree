@@ -19,7 +19,7 @@
 
 /*  Conventions
  *  1. Caller ensures the Node is loaded into memory.
- *  2. If a function modifies the Node, it saves it back to disk
+ *  2. Callee makes in-memory changes, caller saves the changes to disk.
  */
 
 // -- Mode of operation --
