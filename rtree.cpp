@@ -238,8 +238,8 @@ namespace RTree {
         lowerBound = upperBound / 2;
 
         // TODO: clear this up
-        upperBound = 10;
-        lowerBound = 5;
+        upperBound = 4;
+        lowerBound = 2;
     }
 
     double Node::getVolume() const {
@@ -721,9 +721,13 @@ int main() {
     insert(RRoot, DBObject(p1, "srijan"));
     vector<double> p2 = {3,1};
     insert(RRoot, DBObject(p2, "srijan"));
-    insert(RRoot, DBObject(p2, "srijan"));
+    vector<double> p3 = {5,10};
+    insert(RRoot, DBObject(p3, "srijan"));
+    vector<double> p4 = {1,1};
+    insert(RRoot, DBObject(p4, "srijan"));
+    vector<double> p5 = {3,4};
+    insert(RRoot, DBObject(p5, "srijan"));
     RRoot = new Node(1);
-    // RRoot->printNode();
 
     // Load session or build a new tree
     // ifstream sessionFile(SESSION_FILE);
