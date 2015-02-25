@@ -167,11 +167,14 @@ namespace RTree {
             // Get the childCount
             long getChildCount() const { return childIndices.size(); }
 
-            // Increment the size of subTree
-            void incrementSubtree() { ++sizeOfSubtree; }
-
             // Set the size of the subtree
             void setSizeOfSubtree(long _sizeOfSubtree) { sizeOfSubtree = _sizeOfSubtree; }
+
+            // Get the size of subtree
+            long getSizeOfSubtree() const { return sizeOfSubtree; }
+
+            // Update size of subtree
+            void updateSizeOfSubtree(long _increment) { sizeOfSubtree += _increment; }
 
             // Set the parentIndex
             void setParentIndex(long _parentIndex) { parentIndex = _parentIndex; }
@@ -201,11 +204,14 @@ namespace RTree {
             void updateMBR(vector<double> point);
             void updateMBR(Node *nodeToInsert);
 
-            // Resize the tree by using childIndices
-            void resizeNode();
+            // Resize the MBR by using childIndices
+            void resizeMBR();
 
             // Insert an object to a leaf
             void insertObject(DBObject object);
+
+            // Insert an object into the parent Node
+            void insertNode(Node *surrogateNode);
 
             // Split a node
             void splitNode();
@@ -446,9 +452,6 @@ namespace RTree {
 #endif
 
    void Node::updateMBR(vector<double> point) {
-       // Increment the sizeOfSubtree
-       incrementSubtree();
-
        for (long i = 0; i < DIMENSION; ++i) {
            // lowerPoint is the min of existing and point
            lowerCoordinates[i] = min(lowerCoordinates[i], point[i]);
@@ -456,15 +459,9 @@ namespace RTree {
            // upperPoint is max of existing and point
            upperCoordinates[i] = max(upperCoordinates[i], point[i]);
        }
-
-       // We have changed the node so we store changes
-       storeNodeToDisk();
    }
 
    void Node::updateMBR(Node *nodeToInsert) {
-       // Increment the sizeOfSubtree
-       sizeOfSubtree += nodeToInsert->sizeOfSubtree;
-
        for (long i = 0; i < DIMENSION; ++i) {
            // lowerPoint is the min of existing and point
            lowerCoordinates[i] = min(lowerCoordinates[i], nodeToInsert->lowerCoordinates[i]);
@@ -472,15 +469,9 @@ namespace RTree {
            // upperPoint is max of existing and point
            upperCoordinates[i] = max(upperCoordinates[i], nodeToInsert->upperCoordinates[i]);
        }
-
-       // We have changed the node so we store changes
-       storeNodeToDisk();
    }
 
-   void Node::resizeNode() {
-       // TODO: Update the sizeof Subtree
-       // sizeOfSubtree
-
+   void Node::resizeMBR() {
        // update the MBR
        for (long i = 0; i < (long) childIndices.size(); ++i) {
            for (long j = 0; j < DIMENSION; ++j) {
@@ -499,6 +490,9 @@ namespace RTree {
    void Node::insertObject(DBObject object) {
        vector<double> objectPoint = object.getPoint();
 
+       // Update the size of the subtree
+       updateSizeOfSubtree(1);
+
        // Update the in-memory node
        childIndices.push_back(object.getFileIndex());
        childLowerPoints.push_back(objectPoint);
@@ -506,6 +500,19 @@ namespace RTree {
 
        // udpate the MBR
        updateMBR(objectPoint);
+   }
+
+   void Node::insertNode(Node *child) {
+       // Update the size of the subtree
+       updateSizeOfSubtree(child->getSizeOfSubtree());
+
+       // Update the in-memory node
+       childIndices.push_back(child->getFileIndex());
+       childLowerPoints.push_back(child->upperCoordinates);
+       childLowerPoints.push_back(child->lowerCoordinates);
+
+       // update the MBR
+       updateMBR(child);
    }
 
    void Node::splitNode() {
@@ -817,6 +824,9 @@ namespace RTree {
 
            // Update the node with new MBR
            nextRoot->updateMBR(object.getPoint());
+
+           // Store the changes to disk
+           nextRoot->storeNodeToDisk();
 
            // Recurse into the node
            insert(nextRoot, object);
