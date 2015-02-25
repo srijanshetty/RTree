@@ -603,12 +603,45 @@ namespace RTree {
 
        // udpate the MBR
        updateMBR(objectPoint);
-
-       // Persist the changes to disk
-       storeNodeToDisk();
    }
 
    void Node::splitNode() {
+       // QUADRATIC SPLIT
+
+       // Find the first two seeds using volume wasted
+       long size = childIndices.size();
+       long firstSeed = 0;
+       long secondSeed = 0;
+
+       double maxWaste = numeric_limits<double>::min();
+       double waste = 0;
+
+       vector<double> maxCoordinates;
+       vector<double> minCoordinates;
+
+       // Find the seeds by computing max wastage
+       for (long i = 0; i < size; ++i) {
+           for (long j = i; j < size; ++j) {
+               // Get the covering rectangle of the points in consideration
+               maxCoordinates.clear();
+               minCoordinates.clear();
+               for (long k = 0; k < DIMENSION; ++k) {
+                   maxCoordinates.push_back(max(childUpperPoints[i][k], childUpperPoints[j][k]));
+                   minCoordinates.push_back(min(childLowerPoints[i][k], childLowerPoints[j][k]));
+               }
+
+               // Compute max wastage for the points in consideration
+               waste = getVolume(maxCoordinates, minCoordinates)
+                   - getVolume(childUpperPoints[i], childLowerPoints[i])
+                   - getVolume(childUpperPoints[j], childLowerPoints[j]);
+
+               if (waste > maxWaste) {
+                   maxWaste = waste;
+                   firstSeed = i;
+                   secondSeed = j;
+               }
+           }
+       }
    }
 
    // Store the current session to disk
