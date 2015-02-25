@@ -138,8 +138,10 @@ namespace RTree {
             long fileIndex = DEFAULT;
             long parentIndex = DEFAULT;
             long sizeOfSubtree = 0;
-            vector<double> upperPoints = vector<double>(DIMENSION, numeric_limits<double>::min());
-            vector<double> lowerPoints = vector<double>(DIMENSION, numeric_limits<double>::max());
+            vector<double> upperCoordinates = vector<double>(DIMENSION, numeric_limits<double>::min());
+            vector<double> lowerCoordinates = vector<double>(DIMENSION, numeric_limits<double>::max());
+
+        public:
             vector< vector<double> > childLowerPoints;
             vector< vector<double> > childUpperPoints;
 
@@ -191,6 +193,10 @@ namespace RTree {
 
             // Update the MBR of a node
             void updateMBR(vector<double> point);
+            void updateMBR(Node *nodeToInsert);
+
+            // Resize the tree by using childIndices
+            void resizeNode();
 
             // Insert an object to a leaf
             void insertObject(DBObject object);
@@ -231,7 +237,7 @@ namespace RTree {
         double volume = 1;
 
         for (long i = 0; i < DIMENSION; ++i) {
-            volume *= (upperPoints[i] - lowerPoints[i]);
+            volume *= (upperCoordinates[i] - lowerCoordinates[i]);
         }
 
         return volume;
@@ -242,14 +248,13 @@ namespace RTree {
         double component = 0;
 
         for (long i = 0; i < DIMENSION; ++i) {
-
             // For each component we check where it lies for every projection
-            if (point[i] >= lowerPoints[i] && point[i] <= upperPoints[i]) {
+            if (point[i] >= lowerCoordinates[i] && point[i] <= upperCoordinates[i]) {
                 component = 0;
-            } else if (point[i] < lowerPoints[i]) {
-                component = lowerPoints[i] - point[i];
+            } else if (point[i] < lowerCoordinates[i]) {
+                component = lowerCoordinates[i] - point[i];
             } else {
-                component = point[i] - upperPoints[i];
+                component = point[i] - upperCoordinates[i];
             }
 
             // Add the square of component to distance
@@ -277,14 +282,14 @@ namespace RTree {
         location += sizeof(sizeOfSubtree);
 
         // Add the bounds of the MBR to the tree
-        for (auto upperPoint : upperPoints) {
-            memcpy(buffer + location, &upperPoint, sizeof(upperPoint));
-            location += sizeof(upperPoint);
+        for (auto upperCoordinate : upperCoordinates) {
+            memcpy(buffer + location, &upperCoordinate, sizeof(upperCoordinate));
+            location += sizeof(upperCoordinate);
         }
 
-        for (auto lowerPoint : lowerPoints) {
-            memcpy(buffer + location, &lowerPoint, sizeof(lowerPoint));
-            location += sizeof(lowerPoint);
+        for (auto lowerCoordinate : lowerCoordinates) {
+            memcpy(buffer + location, &lowerCoordinate, sizeof(lowerCoordinate));
+            location += sizeof(lowerCoordinate);
         }
 
         // We have to store the bumber of children so that we can load them properly
@@ -336,22 +341,22 @@ namespace RTree {
         memcpy((char *) &sizeOfSubtree, buffer + location, sizeof(sizeOfSubtree));
         location += sizeof(sizeOfSubtree);
 
-        // Retrieve upperPoints
-        upperPoints.clear();
-        double upperPoint = 0;
+        // Retrieve upperCoordinates
+        upperCoordinates.clear();
+        double upperCoordinate = 0;
         for (long i = 0; i < DIMENSION; ++i) {
-            memcpy((char *) &upperPoint, buffer + location, sizeof(upperPoint));
-            upperPoints.push_back(upperPoint);
-            location += sizeof(upperPoint);
+            memcpy((char *) &upperCoordinate, buffer + location, sizeof(upperCoordinate));
+            upperCoordinates.push_back(upperCoordinate);
+            location += sizeof(upperCoordinate);
         }
 
-        // Retrieve lowerPoints
-        lowerPoints.clear();
-        double lowerPoint = 0;
+        // Retrieve lowerCoordinates
+        lowerCoordinates.clear();
+        double lowerCoordinate = 0;
         for (long i = 0; i < DIMENSION; ++i) {
-            memcpy((char *) &lowerPoint, buffer + location, sizeof(lowerPoint));
-            lowerPoints.push_back(lowerPoint);
-            location += sizeof(lowerPoint);
+            memcpy((char *) &lowerCoordinate, buffer + location, sizeof(lowerCoordinate));
+            lowerCoordinates.push_back(lowerCoordinate);
+            location += sizeof(lowerCoordinate);
         }
 
         // We need to get the number of children in this case
@@ -393,16 +398,16 @@ namespace RTree {
         cout << "Parent: " << parentIndex << endl;
         cout << "SizeOfSubtree: " << sizeOfSubtree << endl;
 
-        cout << "UpperPoints: ";
+        cout << "UpperCoordinates: ";
         // Add the bounds of the MBR to the tree
-        for (auto upperPoint : upperPoints) {
-            cout << upperPoint << " ";
+        for (auto upperCoordinate : upperCoordinates) {
+            cout << upperCoordinate << " ";
         }
         cout << endl;
 
-        cout << "LowerPoints: ";
-        for (auto lowerPoint : lowerPoints) {
-            cout << lowerPoint << " ";
+        cout << "LowerCoordinates: ";
+        for (auto lowerCoordinate : lowerCoordinates) {
+            cout << lowerCoordinate << " ";
         }
         cout << endl;
 
@@ -466,9 +471,9 @@ namespace RTree {
 
                 // Print the MBR
                 cout << "[( ";
-                copy(upperPoints.begin(), upperPoints.end(), ostream_iterator<double>(cout, " "));
+                copy(upperCoordinates.begin(), upperCoordinates.end(), ostream_iterator<double>(cout, " "));
                 cout << "),( ";
-                copy(lowerPoints.begin(), lowerPoints.end(), ostream_iterator<double>(cout, " "));
+                copy(lowerCoordinates.begin(), lowerCoordinates.end(), ostream_iterator<double>(cout, " "));
                 cout << ")]";
 
                 if (!leaf) {
@@ -528,10 +533,45 @@ namespace RTree {
 
        for (long i = 0; i < DIMENSION; ++i) {
            // lowerPoint is the min of existing and point
-           lowerPoints[i] = min(lowerPoints[i], point[i]);
+           lowerCoordinates[i] = min(lowerCoordinates[i], point[i]);
 
            // upperPoint is max of existing and point
-           upperPoints[i] = max(upperPoints[i], point[i]);
+           upperCoordinates[i] = max(upperCoordinates[i], point[i]);
+       }
+
+       // We have changed the node so we store changes
+       storeNodeToDisk();
+   }
+
+   void Node::updateMBR(Node *nodeToInsert) {
+       // Increment the sizeOfSubtree
+       sizeOfSubtree += nodeToInsert->sizeOfSubtree;
+
+       for (long i = 0; i < DIMENSION; ++i) {
+           // lowerPoint is the min of existing and point
+           lowerCoordinates[i] = min(lowerCoordinates[i], nodeToInsert->lowerCoordinates[i]);
+
+           // upperPoint is max of existing and point
+           upperCoordinates[i] = max(upperCoordinates[i], nodeToInsert->upperCoordinates[i]);
+       }
+
+       // We have changed the node so we store changes
+       storeNodeToDisk();
+   }
+
+   void Node::resizeNode() {
+       // TODO: Update the sizeof Subtree
+       // sizeOfSubtree
+
+       // update the MBR
+       for (long i = 0; i < (long) childIndices.size(); ++i) {
+           for (long j = 0; j < DIMENSION; ++j) {
+               // lowerPoint is the min of existing and point
+               lowerCoordinates[j] = min(lowerCoordinates[j], childLowerPoints[i][j]);
+
+               // upperPoint is max of existing and point
+               upperCoordinates[j] = max(upperCoordinates[j], childUpperPoints[i][j]);
+           }
        }
    }
 
