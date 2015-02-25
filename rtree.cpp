@@ -615,6 +615,68 @@ namespace RTree {
    }
 #endif
 
+   // Store the current session to disk
+   void storeSession() {
+       // Create a character buffer which will be written to disk
+       char buffer[PAGESIZE];
+       long location = 0;
+
+       // Store RRoot's fileIndex
+       long fileIndex = RRoot->getFileIndex();
+       memcpy(buffer + location, &fileIndex, sizeof(fileIndex));
+       location += sizeof(fileIndex);
+
+       // Store the global fileCount
+       long fileCount = Node::getFileCount();
+       memcpy(buffer + location, &fileCount, sizeof(fileCount));
+       location += sizeof(fileCount);
+
+       // Store the global objectCount
+       long objectCount = DBObject::getObjectCount();
+       memcpy(buffer + location, &objectCount, sizeof(objectCount));
+       location += sizeof(objectCount);
+
+       // Create a binary file and write to memory
+       ofstream sessionFile(SESSION_FILE, ios::binary | ios::out);
+       sessionFile.write(buffer, PAGESIZE);
+       sessionFile.close();
+   }
+
+   void loadSession() {
+       // Create a character buffer which will be written to disk
+       long location = 0;
+       char buffer[PAGESIZE];
+
+       // Open the binary file ane read into memory
+       ifstream sessionFile(SESSION_FILE, ios::binary | ios::in);
+       sessionFile.read(buffer, PAGESIZE);
+       sessionFile.close();
+
+       // Retrieve the fileIndex of RRoot
+       long fileIndex = 0;
+       memcpy((char *) &fileIndex, buffer + location, sizeof(fileIndex));
+       location += sizeof(fileIndex);
+
+       // Retreive the global fileCount
+       long fileCount = 0;
+       memcpy((char *) &fileCount, buffer + location, sizeof(fileCount));
+       location += sizeof(fileCount);
+
+       // Retreive the global objectCount
+       long objectCount = 0;
+       memcpy((char *) &objectCount, buffer + location, sizeof(objectCount));
+       location += sizeof(objectCount);
+
+       // Store the session variables
+       Node::setFileCount(fileCount);
+       DBObject::setObjectCount(objectCount);
+
+       // Delete the current root and load it from disk
+       delete RRoot;
+       RRoot = new Node(fileIndex);
+       RRoot->loadNodeFromDisk();
+   }
+
    void Node::splitNode() {
        // QUADRATIC SPLIT
 
@@ -779,6 +841,9 @@ namespace RTree {
            surrogateNode->storeNodeToDisk();
            parentNode->storeNodeToDisk();
 
+           // Clean up
+           delete surrogateNode;
+
            // Update RRoot
            delete RRoot;
            RRoot = parentNode;
@@ -801,72 +866,15 @@ namespace RTree {
            } else {
                delete parentNode;
            }
+
+           // Store the node to disk and delete the pointer
+           delete surrogateNode;
+
+           // The parent has overflown
+           if (parentNode->getChildCount() > Node::upperBound) {
+               parentNode->splitNode();
+           }
        }
-
-       // Store the node to disk and delete the pointer
-       delete surrogateNode;
-   }
-
-   // Store the current session to disk
-   void storeSession() {
-       // Create a character buffer which will be written to disk
-       char buffer[PAGESIZE];
-       long location = 0;
-
-       // Store RRoot's fileIndex
-       long fileIndex = RRoot->getFileIndex();
-       memcpy(buffer + location, &fileIndex, sizeof(fileIndex));
-       location += sizeof(fileIndex);
-
-       // Store the global fileCount
-       long fileCount = Node::getFileCount();
-       memcpy(buffer + location, &fileCount, sizeof(fileCount));
-       location += sizeof(fileCount);
-
-       // Store the global objectCount
-       long objectCount = DBObject::getObjectCount();
-       memcpy(buffer + location, &objectCount, sizeof(objectCount));
-       location += sizeof(objectCount);
-
-       // Create a binary file and write to memory
-       ofstream sessionFile(SESSION_FILE, ios::binary | ios::out);
-       sessionFile.write(buffer, PAGESIZE);
-       sessionFile.close();
-   }
-
-   void loadSession() {
-       // Create a character buffer which will be written to disk
-       long location = 0;
-       char buffer[PAGESIZE];
-
-       // Open the binary file ane read into memory
-       ifstream sessionFile(SESSION_FILE, ios::binary | ios::in);
-       sessionFile.read(buffer, PAGESIZE);
-       sessionFile.close();
-
-       // Retrieve the fileIndex of RRoot
-       long fileIndex = 0;
-       memcpy((char *) &fileIndex, buffer + location, sizeof(fileIndex));
-       location += sizeof(fileIndex);
-
-       // Retreive the global fileCount
-       long fileCount = 0;
-       memcpy((char *) &fileCount, buffer + location, sizeof(fileCount));
-       location += sizeof(fileCount);
-
-       // Retreive the global objectCount
-       long objectCount = 0;
-       memcpy((char *) &objectCount, buffer + location, sizeof(objectCount));
-       location += sizeof(objectCount);
-
-       // Store the session variables
-       Node::setFileCount(fileCount);
-       DBObject::setObjectCount(objectCount);
-
-       // Delete the current root and load it from disk
-       delete RRoot;
-       RRoot = new Node(fileIndex);
-       RRoot->loadNodeFromDisk();
    }
 
    // Insert a node into the tree
