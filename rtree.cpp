@@ -508,12 +508,106 @@ namespace RTree {
 
        // Update the in-memory node
        childIndices.push_back(child->getFileIndex());
-       childLowerPoints.push_back(child->upperCoordinates);
+       childUpperPoints.push_back(child->upperCoordinates);
        childLowerPoints.push_back(child->lowerCoordinates);
 
        // update the MBR
        updateMBR(child);
    }
+
+#ifdef DEBUG_NORMAL
+   void printTree(Node *root) {
+       // Return if node is empty
+       if (root->childIndices.size() == 0) {
+           return;
+       }
+
+       // Prettify
+       cout << endl << endl;
+
+       // To store the previous Level
+       queue< pair<long, char> > previousLevel;
+       previousLevel.push(make_pair(root->getFileIndex(), 'N'));
+
+       // To store the leaves
+       queue< pair< vector<double>, char> > leaves;
+
+       long currentIndex;
+       Node *iterator;
+       char type;
+       while (!previousLevel.empty()) {
+           queue< pair<long, char> > nextLevel;
+
+           while (!previousLevel.empty()) {
+               // Get the front and pop
+               currentIndex = previousLevel.front().first;
+               iterator = new Node(currentIndex);
+               type = previousLevel.front().second;
+               previousLevel.pop();
+
+               // If it a seperator, print and move ahead
+               if (type == '|') {
+                   cout << "|| ";
+                   continue;
+               }
+
+               // Print the MBR
+               cout << "[( ";
+               copy(iterator->upperCoordinates.begin(), iterator->upperCoordinates.end(), ostream_iterator<double>(cout, " "));
+               cout << "),( ";
+               copy(iterator->lowerCoordinates.begin(), iterator->lowerCoordinates.end(), ostream_iterator<double>(cout, " "));
+               cout << ")] ";
+
+               if (!iterator->isLeaf()) {
+                   // Enqueue all the children
+                   for (auto childIndex : iterator->childIndices) {
+                       nextLevel.push(make_pair(childIndex, 'N'));
+
+                       // Insert a marker to indicate end of child
+                       nextLevel.push(make_pair(DEFAULT, '|'));
+                   }
+               } else {
+                   // Add all child points to the leaf
+                   for (auto childPoint : iterator->childLowerPoints) {
+                       leaves.push(make_pair(childPoint, 'L'));
+                   }
+
+                   // marker for end of leaf
+                   leaves.push(make_pair(vector<double>(), '|'));
+               }
+
+               // Delete allocated memory
+               delete iterator;
+           }
+
+           // Seperate different levels
+           cout << endl << endl;
+           previousLevel = nextLevel;
+       }
+
+       // Print all the leaves
+       while (!leaves.empty()) {
+           // Get the front and pop
+           vector<double> point = leaves.front().first;
+           type = leaves.front().second;
+           leaves.pop();
+
+           // If it a seperator, print and move ahead
+           if (type == '|') {
+               cout << "|| ";
+               continue;
+           }
+
+           // Print the MBR
+           cout << "( ";
+           copy(point.begin(), point.end(), ostream_iterator<double>(cout, " "));
+           cout << ") ";
+       }
+
+       // Prettify
+       cout << endl << endl;
+   }
+#endif
 
    void Node::splitNode() {
        // QUADRATIC SPLIT
@@ -702,100 +796,6 @@ namespace RTree {
        RRoot->loadNodeFromDisk();
    }
 
-#ifdef DEBUG_NORMAL
-   void printTree(Node *root) {
-        // Return if node is empty
-        if (root->childIndices.size() == 0) {
-            return;
-        }
-
-        // Prettify
-        cout << endl << endl;
-
-        // To store the previous Level
-        queue< pair<long, char> > previousLevel;
-        previousLevel.push(make_pair(root->getFileIndex(), 'N'));
-
-        // To store the leaves
-        queue< pair< vector<double>, char> > leaves;
-
-        long currentIndex;
-        Node *iterator;
-        char type;
-        while (!previousLevel.empty()) {
-            queue< pair<long, char> > nextLevel;
-
-            while (!previousLevel.empty()) {
-                // Get the front and pop
-                currentIndex = previousLevel.front().first;
-                iterator = new Node(currentIndex);
-                type = previousLevel.front().second;
-                previousLevel.pop();
-
-                // If it a seperator, print and move ahead
-                if (type == '|') {
-                    cout << "|| ";
-                    continue;
-                }
-
-                // Print the MBR
-                cout << "[( ";
-                copy(iterator->upperCoordinates.begin(), iterator->upperCoordinates.end(), ostream_iterator<double>(cout, " "));
-                cout << "),( ";
-                copy(iterator->lowerCoordinates.begin(), iterator->lowerCoordinates.end(), ostream_iterator<double>(cout, " "));
-                cout << ")]";
-
-                if (!iterator->isLeaf()) {
-                    // Enqueue all the children
-                    for (auto childIndex : iterator->childIndices) {
-                        nextLevel.push(make_pair(childIndex, 'N'));
-
-                        // Insert a marker to indicate end of child
-                        nextLevel.push(make_pair(DEFAULT, '|'));
-                    }
-                } else {
-                    // Add all child points to the leaf
-                    for (auto childPoint : iterator->childLowerPoints) {
-                        leaves.push(make_pair(childPoint, 'L'));
-                    }
-
-                    // marker for end of leaf
-                    leaves.push(make_pair(vector<double>(), '|'));
-                }
-
-                // Delete allocated memory
-                delete iterator;
-            }
-
-            // Seperate different levels
-            cout << endl << endl;
-            previousLevel = nextLevel;
-        }
-
-        // Print all the leaves
-        while (!leaves.empty()) {
-            // Get the front and pop
-            vector<double> point = leaves.front().first;
-            type = leaves.front().second;
-            leaves.pop();
-
-            // If it a seperator, print and move ahead
-            if (type == '|') {
-                cout << "|| ";
-                continue;
-            }
-
-            // Print the MBR
-            cout << "( ";
-            copy(point.begin(), point.end(), ostream_iterator<double>(cout, " "));
-            cout << ") ";
-        }
-
-        // Prettify
-        cout << endl << endl;
-   }
-#endif
-
    // Insert a node into the tree
    void insert(Node *root, DBObject object) {
        // If the node is a leaf, then we insert
@@ -813,6 +813,7 @@ namespace RTree {
 
 #ifdef DEBUG_VERBOSE
            // print tree
+           cout << "Insert: ";
            printTree(RRoot);
 #endif
        } else {
