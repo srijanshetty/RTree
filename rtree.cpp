@@ -475,8 +475,6 @@ namespace RTree {
    }
 
    void Node::resizeMBR() {
-       lowerCoordinates.clear();
-       upperCoordinates.clear();
        upperCoordinates = vector<double>(DIMENSION, numeric_limits<double>::min());
        lowerCoordinates = vector<double>(DIMENSION, numeric_limits<double>::max());
 
