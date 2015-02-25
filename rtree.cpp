@@ -696,6 +696,9 @@ namespace RTree {
            // Load the node from disk
            Node *nextRoot = new Node(root->childIndices[position]);
 
+           // Update the node with new MBR
+           nextRoot->updateMBR(object.getPoint());
+
            // Recurse into the node
            insert(nextRoot, object);
 
