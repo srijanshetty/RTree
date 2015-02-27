@@ -803,9 +803,6 @@ namespace RTree {
            tempChildUpperPoints.push_back(childUpperPoints[vectorIndex]);
            tempChildLowerPoints.push_back(childLowerPoints[vectorIndex]);
        }
-       childIndices.clear();
-       childLowerPoints.clear();
-       childUpperPoints.clear();
        childIndices = tempChildIndices;
        childLowerPoints = tempChildLowerPoints;
        childUpperPoints = tempChildUpperPoints;
