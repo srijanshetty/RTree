@@ -41,3 +41,6 @@ temp.query
 
 # Data backup
 !data.tar
+
+# GDB
+.gdb_history
