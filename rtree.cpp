@@ -188,7 +188,10 @@ namespace RTree {
             // Get the volume of two passed points
             double getVolume (vector<double> upperPoint, vector<double> lowerPoint) const;
 
-            // Distance of Point
+            // General Distance
+            double getDistanceOfPoint(vector<double> upperPoint, vector<double> lowerPoint, vector<double> point) const;
+
+            // Distance of Point for a given node
             double getDistanceOfPoint(vector<double> point) const;
 
             // Store the node to disk
@@ -264,18 +267,18 @@ namespace RTree {
         return volume;
     }
 
-    double Node::getDistanceOfPoint(vector<double> point) const {
+    double Node::getDistanceOfPoint(vector<double> upperPoint, vector<double> lowerPoint, vector<double> point) const {
         double distance = 0;
         double component = 0;
 
         for (long i = 0; i < DIMENSION; ++i) {
             // For each component we check where it lies for every projection
-            if (point[i] >= lowerCoordinates[i] && point[i] <= upperCoordinates[i]) {
+            if (point[i] >= lowerPoint[i] && point[i] <= upperPoint[i]) {
                 component = 0;
-            } else if (point[i] < lowerCoordinates[i]) {
-                component = lowerCoordinates[i] - point[i];
+            } else if (point[i] < lowerPoint[i]) {
+                component = lowerPoint[i] - point[i];
             } else {
-                component = point[i] - upperCoordinates[i];
+                component = point[i] - upperPoint[i];
             }
 
             // Add the square of component to distance
@@ -283,6 +286,10 @@ namespace RTree {
         }
 
         return sqrt(distance);
+    }
+
+    double Node::getDistanceOfPoint(vector<double> point) const {
+        return getDistanceOfPoint(upperCoordinates, lowerCoordinates, point);
     }
 
     void Node::storeNodeToDisk() const {
