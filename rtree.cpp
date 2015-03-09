@@ -59,6 +59,14 @@ namespace RTree {
     // We use the std namespace freely
     using namespace std;
 
+#ifdef DEBUG_NORMAL
+    void printPoint(vector <double> point) {
+        cout << "( ";
+        copy(point.begin(), point.end(), ostream_iterator<double>(cout, " "));
+        cout << ") ";
+    }
+#endif
+
     // Database objects
     class DBObject {
         private:
@@ -98,13 +106,6 @@ namespace RTree {
 
             // Return the key of the object
             vector<double> getPoint() { return point; }
-
-            // Print the DBObject
-            void print() {
-                cout << "( ";
-                copy(point.begin(), point.end(), ostream_iterator<double>(cout, " "));
-                cout << ") ";
-            }
 
             // Return the string
             string getDataString() const { return dataString; }
@@ -286,12 +287,13 @@ namespace RTree {
         // Find the coordinates if we insert the point
         vector<double> tempUpperPoint = vector<double>(DIMENSION, numeric_limits<double>::min());
         vector<double> tempLowerPoint = vector<double>(DIMENSION, numeric_limits<double>::max());
+
         for (long i = 0; i < DIMENSION; ++i) {
             // lowerPoint is the min of existing and point
-            tempLowerPoint[i] = min(tempLowerPoint[i], point[i]);
+            tempLowerPoint[i] = min(lowerPoint[i], point[i]);
 
             // upperPoint is max of existing and point
-            tempUpperPoint[i] = max(tempUpperPoint[i], point[i]);
+            tempUpperPoint[i] = max(upperPoint[i], point[i]);
         }
 
         // Compute the volume enlargement
@@ -577,37 +579,49 @@ namespace RTree {
     }
 
     long Node::getInsertPosition(vector<double> point) const {
-        // Find all possible insertion points
-        vector< long > possibleInsertionIndices;
-        for (long i = 0; i < (long)childIndices.size(); ++i) {
-            if (getDistanceOfPoint(childUpperPoints[i], childLowerPoints[i], point) == 0) {
-                possibleInsertionIndices.push_back(i);
-            }
-        }
-
-        // If none of them intersect
-        if (possibleInsertionIndices.size() == 0) {
-            // TODO: Use size
-            return 0;
-        }
-
-        // If there is only one possible insertion point then we return that
-        if (possibleInsertionIndices.size() == 1) {
-            return possibleInsertionIndices.front();
-        }
-
-        // For multiple possibleInsertionIndices, we compute the least volume enlargement
+        // We consider the node with minimum volume enlargement
         double minVolumeEnlargement = numeric_limits<double>::max();
         double minIndex = -1;
-        for (auto childIndex : possibleInsertionIndices) {
-            if (getVolumeEnlargement(childUpperPoints[childIndex], childLowerPoints[childIndex], point) < minVolumeEnlargement) {
-                minIndex = childIndex;
+        double volumeEnlargement;
+        double minSize;
+
+#ifdef DEBUG_VERBOSE
+        cout << "getInsertPosition : " << endl;
+#endif
+
+        // Iterate over the children to find the child with minimum volume enlargement
+        for (long i = 0; i < (long) childIndices.size(); ++i) {
+            // Compute the minimum volume enlargement
+            volumeEnlargement = getVolumeEnlargement(childUpperPoints[i], childLowerPoints[i], point);
+
+#ifdef DEBUG_VERBOSE
+            Node *child = new Node(childIndices[i]);
+            child->printMBR();
+            cout << " : " << volumeEnlargement << endl;
+            delete child;
+#endif
+
+            // In case of a tie use the size of the node
+            if (volumeEnlargement < minVolumeEnlargement) {
+                minIndex = i;
+                minVolumeEnlargement = volumeEnlargement;
+
+                // Store the size of the minChild
+                Node *child = new Node(childIndices[i]);
+                minSize = child->getSizeOfSubtree();
+                delete child;
+            } else if (volumeEnlargement == minVolumeEnlargement) {
+                // If the child in consideration has a smaller size then we chose it
+                Node *child = new Node(childIndices[i]);
+                if (child->getSizeOfSubtree() < minSize) {
+                    minIndex = i;
+                    minSize = child->getSizeOfSubtree();
+                }
+                delete child;
             }
         }
 
         return minIndex;
-
-        // TODO: Use size as a tie breaker
     }
 
 
@@ -909,9 +923,19 @@ namespace RTree {
             surrogateNode->childIndices.push_back(childIndices[vectorIndex]);
             surrogateNode->childUpperPoints.push_back(childUpperPoints[vectorIndex]);
             surrogateNode->childLowerPoints.push_back(childLowerPoints[vectorIndex]);
+
+            // Update the size of surrogateNode by subTree or by 1
+            if (!this->isLeaf()) {
+                Node *child = new Node(childIndices[vectorIndex]);
+                surrogateNode->updateSizeOfSubtree(child->getSizeOfSubtree());
+                delete child;
+            } else {
+                surrogateNode->updateSizeOfSubtree(1);
+            }
         }
 
         // Update the children of this
+        this->setSizeOfSubtree(0);
         vector<long> tempChildIndices;
         vector< vector<double> > tempChildUpperPoints;
         vector< vector<double> > tempChildLowerPoints;
@@ -920,6 +944,15 @@ namespace RTree {
             tempChildIndices.push_back(childIndices[vectorIndex]);
             tempChildUpperPoints.push_back(childUpperPoints[vectorIndex]);
             tempChildLowerPoints.push_back(childLowerPoints[vectorIndex]);
+
+            // Update the size of this by subTree or by 1
+            if (!this->isLeaf()) {
+                Node *child = new Node(childIndices[vectorIndex]);
+                this->updateSizeOfSubtree(child->getSizeOfSubtree());
+                delete child;
+            } else {
+                this->updateSizeOfSubtree(1);
+            }
         }
         childIndices = tempChildIndices;
         childLowerPoints = tempChildLowerPoints;
@@ -927,9 +960,6 @@ namespace RTree {
 
         // Resize the surrogate Node and store to disk
         surrogateNode->setParentIndex(parentIndex);
-
-        // TODO : Size of subtree
-        // TODO : Size of subtree of this
 
         // Fix the MBR
         this->resizeMBR();
@@ -1009,8 +1039,8 @@ namespace RTree {
 
 #ifdef DEBUG_VERBOSE
             // print tree
-            cout << "Insert: ";
-            object.print();
+            cout << endl << "Insert: ";
+            printPoint(object.getPoint());
             printTree(RRoot);
 #endif
         } else {
