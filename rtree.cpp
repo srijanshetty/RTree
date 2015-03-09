@@ -504,499 +504,527 @@ namespace RTree {
     }
 #endif
 
-   void Node::updateMBR(vector<double> point) {
-       for (long i = 0; i < DIMENSION; ++i) {
-           // lowerPoint is the min of existing and point
-           lowerCoordinates[i] = min(lowerCoordinates[i], point[i]);
+    void Node::updateMBR(vector<double> point) {
+        for (long i = 0; i < DIMENSION; ++i) {
+            // lowerPoint is the min of existing and point
+            lowerCoordinates[i] = min(lowerCoordinates[i], point[i]);
 
-           // upperPoint is max of existing and point
-           upperCoordinates[i] = max(upperCoordinates[i], point[i]);
-       }
-   }
+            // upperPoint is max of existing and point
+            upperCoordinates[i] = max(upperCoordinates[i], point[i]);
+        }
+    }
 
-   void Node::updateMBR(Node *nodeToInsert) {
-       for (long i = 0; i < DIMENSION; ++i) {
-           // lowerPoint is the min of existing and point
-           lowerCoordinates[i] = min(lowerCoordinates[i], nodeToInsert->lowerCoordinates[i]);
+    void Node::updateMBR(Node *nodeToInsert) {
+        for (long i = 0; i < DIMENSION; ++i) {
+            // lowerPoint is the min of existing and point
+            lowerCoordinates[i] = min(lowerCoordinates[i], nodeToInsert->lowerCoordinates[i]);
 
-           // upperPoint is max of existing and point
-           upperCoordinates[i] = max(upperCoordinates[i], nodeToInsert->upperCoordinates[i]);
-       }
-   }
+            // upperPoint is max of existing and point
+            upperCoordinates[i] = max(upperCoordinates[i], nodeToInsert->upperCoordinates[i]);
+        }
+    }
 
-   void Node::resizeMBR() {
-       upperCoordinates = vector<double>(DIMENSION, numeric_limits<double>::min());
-       lowerCoordinates = vector<double>(DIMENSION, numeric_limits<double>::max());
+    void Node::resizeMBR() {
+        upperCoordinates = vector<double>(DIMENSION, numeric_limits<double>::min());
+        lowerCoordinates = vector<double>(DIMENSION, numeric_limits<double>::max());
 
-       // update the MBR
-       for (long i = 0; i < (long) childIndices.size(); ++i) {
-           for (long j = 0; j < DIMENSION; ++j) {
-               // lowerPoint is the min of existing and point
-               lowerCoordinates[j] = min(lowerCoordinates[j], childLowerPoints[i][j]);
+        // update the MBR
+        for (long i = 0; i < (long) childIndices.size(); ++i) {
+            for (long j = 0; j < DIMENSION; ++j) {
+                // lowerPoint is the min of existing and point
+                lowerCoordinates[j] = min(lowerCoordinates[j], childLowerPoints[i][j]);
 
-               // upperPoint is max of existing and point
-               upperCoordinates[j] = max(upperCoordinates[j], childUpperPoints[i][j]);
-           }
-       }
-   }
+                // upperPoint is max of existing and point
+                upperCoordinates[j] = max(upperCoordinates[j], childUpperPoints[i][j]);
+            }
+        }
+    }
 
-   long Node::getInsertPosition(vector<double> point) const {
-       // Find all possible insertion points
-       vector< long > possibleInsertionIndices;
-       for (long i = 0; i < (long)childIndices.size(); ++i) {
-           if (getDistanceOfPoint(childUpperPoints[i], childLowerPoints[i], point) == 0) {
-               possibleInsertionIndices.push_back(i);
-           }
-       }
+    long Node::getInsertPosition(vector<double> point) const {
+        // Find all possible insertion points
+        vector< long > possibleInsertionIndices;
+        for (long i = 0; i < (long)childIndices.size(); ++i) {
+            if (getDistanceOfPoint(childUpperPoints[i], childLowerPoints[i], point) == 0) {
+                possibleInsertionIndices.push_back(i);
+            }
+        }
 
-       // If none of them intersect
-       if (possibleInsertionIndices.size() == 0) {
-           // TODO: Use size
-           return 0;
-       }
+        // If none of them intersect
+        if (possibleInsertionIndices.size() == 0) {
+            // TODO: Use size
+            return 0;
+        }
 
-       // If there is only one possible insertion point then we return that
-       if (possibleInsertionIndices.size() == 1) {
-           return possibleInsertionIndices.front();
-       }
+        // If there is only one possible insertion point then we return that
+        if (possibleInsertionIndices.size() == 1) {
+            return possibleInsertionIndices.front();
+        }
 
-       // For multiple possibleInsertionIndices, we compute the least volume enlargement
-       double minVolumeEnlargement = numeric_limits<double>::max();
-       double minIndex = -1;
-       for (auto childIndex : possibleInsertionIndices) {
-           if (getVolumeEnlargement(childUpperPoints[childIndex], childLowerPoints[childIndex], point) < minVolumeEnlargement) {
-               minIndex = childIndex;
-           }
-       }
+        // For multiple possibleInsertionIndices, we compute the least volume enlargement
+        double minVolumeEnlargement = numeric_limits<double>::max();
+        double minIndex = -1;
+        for (auto childIndex : possibleInsertionIndices) {
+            if (getVolumeEnlargement(childUpperPoints[childIndex], childLowerPoints[childIndex], point) < minVolumeEnlargement) {
+                minIndex = childIndex;
+            }
+        }
 
-       return minIndex;
+        return minIndex;
 
-       // TODO: Use size as a tie breaker
-   }
+        // TODO: Use size as a tie breaker
+    }
 
 
-   void Node::insertObject(DBObject object) {
-       vector<double> objectPoint = object.getPoint();
+    void Node::insertObject(DBObject object) {
+        vector<double> objectPoint = object.getPoint();
 
-       // Update the size of the subtree
-       updateSizeOfSubtree(1);
+        // Update the size of the subtree
+        updateSizeOfSubtree(1);
 
-       // Update the in-memory node
-       childIndices.push_back(object.getFileIndex());
-       childLowerPoints.push_back(objectPoint);
-       childUpperPoints.push_back(objectPoint);
+        // Update the in-memory node
+        childIndices.push_back(object.getFileIndex());
+        childLowerPoints.push_back(objectPoint);
+        childUpperPoints.push_back(objectPoint);
 
-       // udpate the MBR
-       updateMBR(objectPoint);
-   }
+        // udpate the MBR
+        updateMBR(objectPoint);
+    }
 
-   void Node::insertNode(Node *child) {
-       // Update the size of the subtree
-       updateSizeOfSubtree(child->getSizeOfSubtree());
+    void Node::insertNode(Node *child) {
+        // Update the size of the subtree
+        updateSizeOfSubtree(child->getSizeOfSubtree());
 
-       // Update the in-memory node
-       childIndices.push_back(child->getFileIndex());
-       childUpperPoints.push_back(child->upperCoordinates);
-       childLowerPoints.push_back(child->lowerCoordinates);
+        // Update the in-memory node
+        childIndices.push_back(child->getFileIndex());
+        childUpperPoints.push_back(child->upperCoordinates);
+        childLowerPoints.push_back(child->lowerCoordinates);
 
-       // update the MBR
-       updateMBR(child);
-   }
+        // update the MBR
+        updateMBR(child);
+    }
 
 #ifdef DEBUG_NORMAL
-   void printTree(Node *root) {
-       // Return if node is empty
-       if (root->childIndices.size() == 0) {
-           return;
-       }
+    void printTree(Node *root) {
+        // Return if node is empty
+        if (root->childIndices.size() == 0) {
+            return;
+        }
 
-       // Prettify
-       cout << endl << endl;
+        // Prettify
+        cout << endl << endl;
 
-       // To store the previous Level
-       queue< pair<long, char> > previousLevel;
-       previousLevel.push(make_pair(root->getFileIndex(), 'N'));
+        // To store the previous Level
+        queue< pair<long, char> > previousLevel;
+        previousLevel.push(make_pair(root->getFileIndex(), 'N'));
 
-       // To store the leaves
-       queue< pair< vector<double>, char> > leaves;
+        // To store the leaves
+        queue< pair< vector<double>, char> > leaves;
 
-       long currentIndex;
-       Node *iterator;
-       char type;
-       while (!previousLevel.empty()) {
-           queue< pair<long, char> > nextLevel;
+        long currentIndex;
+        Node *iterator;
+        char type;
+        while (!previousLevel.empty()) {
+            queue< pair<long, char> > nextLevel;
 
-           while (!previousLevel.empty()) {
-               // Get the front and pop
-               currentIndex = previousLevel.front().first;
-               iterator = new Node(currentIndex);
-               type = previousLevel.front().second;
-               previousLevel.pop();
+            while (!previousLevel.empty()) {
+                // Get the front and pop
+                currentIndex = previousLevel.front().first;
+                iterator = new Node(currentIndex);
+                type = previousLevel.front().second;
+                previousLevel.pop();
 
-               // If it a seperator, print and move ahead
-               if (type == '|') {
-                   cout << "|| ";
-                   continue;
-               }
+                // If it a seperator, print and move ahead
+                if (type == '|') {
+                    cout << "|| ";
+                    continue;
+                }
 
-               // Print the MBR
-               cout << "[( ";
-               copy(iterator->upperCoordinates.begin(), iterator->upperCoordinates.end(), ostream_iterator<double>(cout, " "));
-               cout << "),( ";
-               copy(iterator->lowerCoordinates.begin(), iterator->lowerCoordinates.end(), ostream_iterator<double>(cout, " "));
-               cout << ")] ";
+                // Print the MBR
+                cout << "[( ";
+                copy(iterator->upperCoordinates.begin(), iterator->upperCoordinates.end(), ostream_iterator<double>(cout, " "));
+                cout << "),( ";
+                copy(iterator->lowerCoordinates.begin(), iterator->lowerCoordinates.end(), ostream_iterator<double>(cout, " "));
+                cout << ")] ";
 
-               if (!iterator->isLeaf()) {
-                   // Enqueue all the children
-                   for (auto childIndex : iterator->childIndices) {
-                       nextLevel.push(make_pair(childIndex, 'N'));
+                if (!iterator->isLeaf()) {
+                    // Enqueue all the children
+                    for (auto childIndex : iterator->childIndices) {
+                        nextLevel.push(make_pair(childIndex, 'N'));
 
-                       // Insert a marker to indicate end of child
-                       nextLevel.push(make_pair(DEFAULT, '|'));
-                   }
-               } else {
-                   // Add all child points to the leaf
-                   for (auto childPoint : iterator->childLowerPoints) {
-                       leaves.push(make_pair(childPoint, 'L'));
-                   }
+                        // Insert a marker to indicate end of child
+                        nextLevel.push(make_pair(DEFAULT, '|'));
+                    }
+                } else {
+                    // Add all child points to the leaf
+                    for (auto childPoint : iterator->childLowerPoints) {
+                        leaves.push(make_pair(childPoint, 'L'));
+                    }
 
-                   // marker for end of leaf
-                   leaves.push(make_pair(vector<double>(), '|'));
-               }
+                    // marker for end of leaf
+                    leaves.push(make_pair(vector<double>(), '|'));
+                }
 
-               // Delete allocated memory
-               delete iterator;
-           }
+                // Delete allocated memory
+                delete iterator;
+            }
 
-           // Seperate different levels
-           cout << endl << endl;
-           previousLevel = nextLevel;
-       }
+            // Seperate different levels
+            cout << endl << endl;
+            previousLevel = nextLevel;
+        }
 
-       // Print all the leaves
-       while (!leaves.empty()) {
-           // Get the front and pop
-           vector<double> point = leaves.front().first;
-           type = leaves.front().second;
-           leaves.pop();
+        // Print all the leaves
+        while (!leaves.empty()) {
+            // Get the front and pop
+            vector<double> point = leaves.front().first;
+            type = leaves.front().second;
+            leaves.pop();
 
-           // If it a seperator, print and move ahead
-           if (type == '|') {
-               cout << "|| ";
-               continue;
-           }
+            // If it a seperator, print and move ahead
+            if (type == '|') {
+                cout << "|| ";
+                continue;
+            }
 
-           // Print the MBR
-           cout << "( ";
-           copy(point.begin(), point.end(), ostream_iterator<double>(cout, " "));
-           cout << ") ";
-       }
+            // Print the MBR
+            cout << "( ";
+            copy(point.begin(), point.end(), ostream_iterator<double>(cout, " "));
+            cout << ") ";
+        }
 
-       // Prettify
-       cout << endl << endl;
-   }
+        // Prettify
+        cout << endl << endl;
+    }
 #endif
 
-   // Store the current session to disk
-   void storeSession() {
-       // Create a character buffer which will be written to disk
-       char buffer[PAGESIZE];
-       long location = 0;
+    // Store the current session to disk
+    void storeSession() {
+        // Create a character buffer which will be written to disk
+        char buffer[PAGESIZE];
+        long location = 0;
 
-       // Store RRoot's fileIndex
-       long fileIndex = RRoot->getFileIndex();
-       memcpy(buffer + location, &fileIndex, sizeof(fileIndex));
-       location += sizeof(fileIndex);
+        // Store RRoot's fileIndex
+        long fileIndex = RRoot->getFileIndex();
+        memcpy(buffer + location, &fileIndex, sizeof(fileIndex));
+        location += sizeof(fileIndex);
 
-       // Store the global fileCount
-       long fileCount = Node::getFileCount();
-       memcpy(buffer + location, &fileCount, sizeof(fileCount));
-       location += sizeof(fileCount);
+        // Store the global fileCount
+        long fileCount = Node::getFileCount();
+        memcpy(buffer + location, &fileCount, sizeof(fileCount));
+        location += sizeof(fileCount);
 
-       // Store the global objectCount
-       long objectCount = DBObject::getObjectCount();
-       memcpy(buffer + location, &objectCount, sizeof(objectCount));
-       location += sizeof(objectCount);
+        // Store the global objectCount
+        long objectCount = DBObject::getObjectCount();
+        memcpy(buffer + location, &objectCount, sizeof(objectCount));
+        location += sizeof(objectCount);
 
-       // Create a binary file and write to memory
-       ofstream sessionFile(SESSION_FILE, ios::binary | ios::out);
-       sessionFile.write(buffer, PAGESIZE);
-       sessionFile.close();
-   }
+        // Create a binary file and write to memory
+        ofstream sessionFile(SESSION_FILE, ios::binary | ios::out);
+        sessionFile.write(buffer, PAGESIZE);
+        sessionFile.close();
+    }
 
-   void loadSession() {
-       // Create a character buffer which will be written to disk
-       long location = 0;
-       char buffer[PAGESIZE];
+    void loadSession() {
+        // Create a character buffer which will be written to disk
+        long location = 0;
+        char buffer[PAGESIZE];
 
-       // Open the binary file ane read into memory
-       ifstream sessionFile(SESSION_FILE, ios::binary | ios::in);
-       sessionFile.read(buffer, PAGESIZE);
-       sessionFile.close();
+        // Open the binary file ane read into memory
+        ifstream sessionFile(SESSION_FILE, ios::binary | ios::in);
+        sessionFile.read(buffer, PAGESIZE);
+        sessionFile.close();
 
-       // Retrieve the fileIndex of RRoot
-       long fileIndex = 0;
-       memcpy((char *) &fileIndex, buffer + location, sizeof(fileIndex));
-       location += sizeof(fileIndex);
+        // Retrieve the fileIndex of RRoot
+        long fileIndex = 0;
+        memcpy((char *) &fileIndex, buffer + location, sizeof(fileIndex));
+        location += sizeof(fileIndex);
 
-       // Retreive the global fileCount
-       long fileCount = 0;
-       memcpy((char *) &fileCount, buffer + location, sizeof(fileCount));
-       location += sizeof(fileCount);
+        // Retreive the global fileCount
+        long fileCount = 0;
+        memcpy((char *) &fileCount, buffer + location, sizeof(fileCount));
+        location += sizeof(fileCount);
 
-       // Retreive the global objectCount
-       long objectCount = 0;
-       memcpy((char *) &objectCount, buffer + location, sizeof(objectCount));
-       location += sizeof(objectCount);
+        // Retreive the global objectCount
+        long objectCount = 0;
+        memcpy((char *) &objectCount, buffer + location, sizeof(objectCount));
+        location += sizeof(objectCount);
 
-       // Store the session variables
-       Node::setFileCount(fileCount);
-       DBObject::setObjectCount(objectCount);
+        // Store the session variables
+        Node::setFileCount(fileCount);
+        DBObject::setObjectCount(objectCount);
 
-       // Delete the current root and load it from disk
-       delete RRoot;
-       RRoot = new Node(fileIndex);
-       RRoot->loadNodeFromDisk();
-   }
+        // Delete the current root and load it from disk
+        delete RRoot;
+        RRoot = new Node(fileIndex);
+        RRoot->loadNodeFromDisk();
+    }
 
-   void Node::splitNode() {
-       // QUADRATIC SPLIT
+    void Node::splitNode() {
+        // QUADRATIC SPLIT
 
-       // Find the first two seeds using volume wasted
-       long size = childIndices.size();
-       long firstSeed = 0;
-       long secondSeed = 0;
+        // Find the first two seeds using volume wasted
+        long size = childIndices.size();
+        long firstSeed = 0;
+        long secondSeed = 0;
 
-       double maxWaste = numeric_limits<double>::min();
-       double waste = 0;
+        double maxWaste = numeric_limits<double>::min();
+        double waste = 0;
 
-       vector<double> maxCoordinates;
-       vector<double> minCoordinates;
+        vector<double> maxCoordinates;
+        vector<double> minCoordinates;
 
-       // Find the seeds by computing max wastage
-       for (long i = 0; i < size; ++i) {
-           for (long j = i; j < size; ++j) {
-               // Get the covering rectangle of the points in consideration
-               maxCoordinates.clear();
-               minCoordinates.clear();
-               for (long k = 0; k < DIMENSION; ++k) {
-                   maxCoordinates.push_back(max(childUpperPoints[i][k], childUpperPoints[j][k]));
-                   minCoordinates.push_back(min(childLowerPoints[i][k], childLowerPoints[j][k]));
-               }
+        // Find the seeds by computing max wastage
+        for (long i = 0; i < size; ++i) {
+            for (long j = i; j < size; ++j) {
+                // Get the covering rectangle of the points in consideration
+                maxCoordinates.clear();
+                minCoordinates.clear();
+                for (long k = 0; k < DIMENSION; ++k) {
+                    maxCoordinates.push_back(max(childUpperPoints[i][k], childUpperPoints[j][k]));
+                    minCoordinates.push_back(min(childLowerPoints[i][k], childLowerPoints[j][k]));
+                }
 
-               // Compute max wastage for the points in consideration
-               waste = getVolume(maxCoordinates, minCoordinates)
-                   - getVolume(childUpperPoints[i], childLowerPoints[i])
-                   - getVolume(childUpperPoints[j], childLowerPoints[j]);
+                // Compute max wastage for the points in consideration
+                waste = getVolume(maxCoordinates, minCoordinates)
+                    - getVolume(childUpperPoints[i], childLowerPoints[i])
+                    - getVolume(childUpperPoints[j], childLowerPoints[j]);
 
-               if (waste > maxWaste) {
-                   maxWaste = waste;
-                   firstSeed = i;
-                   secondSeed = j;
-               }
-           }
-       }
+                if (waste > maxWaste) {
+                    maxWaste = waste;
+                    firstSeed = i;
+                    secondSeed = j;
+                }
+            }
+        }
 
-       // Add the firstSeed to the split
-       vector<long> firstSplit = { firstSeed };
-       vector<long> secondSplit = { secondSeed };
+        // Add the firstSeed to the split
+        vector<long> firstSplit = { firstSeed };
+        vector<long> secondSplit = { secondSeed };
 
-       // We compute the wastage of all other points with the seed
-       double firstSeedVolume = getVolume(childUpperPoints[firstSeed], childLowerPoints[firstSeed]);
-       double secondSeedVolume = getVolume(childUpperPoints[secondSeed], childLowerPoints[secondSeed]);
-       double firstSeedWaste, secondSeedWaste;
-       long i = 0; // We will need i later
-       for (; i < size && ((long)firstSplit.size() < upperBound - lowerBound + 1)
-               && ((long) secondSplit.size() < upperBound - lowerBound + 1) ; ++i) {
-           // We don't have to reconsider the seeds
-           if (i == firstSeed || i == secondSeed) {
-               continue;
-           }
+        // We compute the wastage of all other points with the seed
+        double firstSeedVolume = getVolume(childUpperPoints[firstSeed], childLowerPoints[firstSeed]);
+        double secondSeedVolume = getVolume(childUpperPoints[secondSeed], childLowerPoints[secondSeed]);
+        double firstSeedWaste, secondSeedWaste;
+        long i = 0; // We will need i later
+        for (; i < size && ((long)firstSplit.size() < upperBound - lowerBound + 1)
+                && ((long) secondSplit.size() < upperBound - lowerBound + 1) ; ++i) {
+            // We don't have to reconsider the seeds
+            if (i == firstSeed || i == secondSeed) {
+                continue;
+            }
 
-           // Get the covering rectangle of firstSeed and point
-           maxCoordinates.clear();
-           minCoordinates.clear();
-           for (long k = 0; k < DIMENSION; ++k) {
-               maxCoordinates.push_back(max(childUpperPoints[firstSeed][k], childUpperPoints[i][k]));
-               minCoordinates.push_back(min(childLowerPoints[firstSeed][k], childLowerPoints[i][k]));
-           }
+            // Get the covering rectangle of firstSeed and point
+            maxCoordinates.clear();
+            minCoordinates.clear();
+            for (long k = 0; k < DIMENSION; ++k) {
+                maxCoordinates.push_back(max(childUpperPoints[firstSeed][k], childUpperPoints[i][k]));
+                minCoordinates.push_back(min(childLowerPoints[firstSeed][k], childLowerPoints[i][k]));
+            }
 
-           firstSeedWaste = getVolume(maxCoordinates, minCoordinates)
-               - firstSeedVolume
-               - getVolume(childUpperPoints[i], childLowerPoints[i]);
+            firstSeedWaste = getVolume(maxCoordinates, minCoordinates)
+                - firstSeedVolume
+                - getVolume(childUpperPoints[i], childLowerPoints[i]);
 
-           // Get the covering rectangle of secondSeed and point
-           maxCoordinates.clear();
-           minCoordinates.clear();
-           for (long k = 0; k < DIMENSION; ++k) {
-               maxCoordinates.push_back(max(childUpperPoints[secondSeed][k], childUpperPoints[i][k]));
-               minCoordinates.push_back(min(childLowerPoints[secondSeed][k], childLowerPoints[i][k]));
-           }
+            // Get the covering rectangle of secondSeed and point
+            maxCoordinates.clear();
+            minCoordinates.clear();
+            for (long k = 0; k < DIMENSION; ++k) {
+                maxCoordinates.push_back(max(childUpperPoints[secondSeed][k], childUpperPoints[i][k]));
+                minCoordinates.push_back(min(childLowerPoints[secondSeed][k], childLowerPoints[i][k]));
+            }
 
-           secondSeedWaste = getVolume(maxCoordinates, minCoordinates)
-               - secondSeedVolume
-               - getVolume(childUpperPoints[i], childLowerPoints[i]);
+            secondSeedWaste = getVolume(maxCoordinates, minCoordinates)
+                - secondSeedVolume
+                - getVolume(childUpperPoints[i], childLowerPoints[i]);
 
-           // If the firsSeedWaste is lesser, we add the node to the first split
-           if (firstSeedWaste < secondSeedWaste) {
-               firstSplit.push_back(i);
-           } else {
-               secondSplit.push_back(i);
-           }
-       }
+            // If the firsSeedWaste is lesser, we add the node to the first split
+            if (firstSeedWaste < secondSeedWaste) {
+                firstSplit.push_back(i);
+            } else {
+                secondSplit.push_back(i);
+            }
+        }
 
-       // Push the remaining vectors into one of the splits
-       if ((long) firstSplit.size() >= upperBound - lowerBound + 1) {
-           for (;i < size; ++i) {
-               // We don't want to push the secondSeed again
-               if (i == firstSeed || i == secondSeed ) {
-                   continue;
-               }
+        // Push the remaining vectors into one of the splits
+        if ((long) firstSplit.size() >= upperBound - lowerBound + 1) {
+            for (;i < size; ++i) {
+                // We don't want to push the secondSeed again
+                if (i == firstSeed || i == secondSeed ) {
+                    continue;
+                }
 
-               secondSplit.push_back(i);
-           }
-       } else {
-           for (;i < size; ++i) {
-               // We don't want to push the firstSeed again
-               if (i == firstSeed || i == secondSeed ) {
-                   continue;
-               }
+                secondSplit.push_back(i);
+            }
+        } else {
+            for (;i < size; ++i) {
+                // We don't want to push the firstSeed again
+                if (i == firstSeed || i == secondSeed ) {
+                    continue;
+                }
 
-               firstSplit.push_back(i);
-           }
-       }
+                firstSplit.push_back(i);
+            }
+        }
 
-       // Create a surrogate node for the secondSplit
-       Node *surrogateNode = new Node();
-       for (auto vectorIndex : secondSplit) {
-           // Add child to surrogate
-           surrogateNode->childIndices.push_back(childIndices[vectorIndex]);
-           surrogateNode->childUpperPoints.push_back(childUpperPoints[vectorIndex]);
-           surrogateNode->childLowerPoints.push_back(childLowerPoints[vectorIndex]);
-       }
+        // Create a surrogate node for the secondSplit
+        Node *surrogateNode = new Node();
+        for (auto vectorIndex : secondSplit) {
+            // Add child to surrogate
+            surrogateNode->childIndices.push_back(childIndices[vectorIndex]);
+            surrogateNode->childUpperPoints.push_back(childUpperPoints[vectorIndex]);
+            surrogateNode->childLowerPoints.push_back(childLowerPoints[vectorIndex]);
+        }
 
-       // Update the children of this
-       vector<long> tempChildIndices;
-       vector< vector<double> > tempChildUpperPoints;
-       vector< vector<double> > tempChildLowerPoints;
-       for (auto vectorIndex : firstSplit) {
-           // Add these children to this
-           tempChildIndices.push_back(childIndices[vectorIndex]);
-           tempChildUpperPoints.push_back(childUpperPoints[vectorIndex]);
-           tempChildLowerPoints.push_back(childLowerPoints[vectorIndex]);
-       }
-       childIndices = tempChildIndices;
-       childLowerPoints = tempChildLowerPoints;
-       childUpperPoints = tempChildUpperPoints;
+        // Update the children of this
+        vector<long> tempChildIndices;
+        vector< vector<double> > tempChildUpperPoints;
+        vector< vector<double> > tempChildLowerPoints;
+        for (auto vectorIndex : firstSplit) {
+            // Add these children to this
+            tempChildIndices.push_back(childIndices[vectorIndex]);
+            tempChildUpperPoints.push_back(childUpperPoints[vectorIndex]);
+            tempChildLowerPoints.push_back(childLowerPoints[vectorIndex]);
+        }
+        childIndices = tempChildIndices;
+        childLowerPoints = tempChildLowerPoints;
+        childUpperPoints = tempChildUpperPoints;
 
-       // Resize the surrogate Node and store to disk
-       surrogateNode->setParentIndex(parentIndex);
+        // Resize the surrogate Node and store to disk
+        surrogateNode->setParentIndex(parentIndex);
 
-       // TODO : Size of subtree
-       // TODO : Size of subtree of this
+        // TODO : Size of subtree
+        // TODO : Size of subtree of this
 
-       // Fix the MBR
-       this->resizeMBR();
-       surrogateNode->resizeMBR();
+        // Fix the MBR
+        this->resizeMBR();
+        surrogateNode->resizeMBR();
 
-       // We have to insert the newly created surrogate into the parent
-       if (parentIndex == DEFAULT) {
-           // Create a new parent
-           Node *parentNode = new Node();
+        // We have to insert the newly created surrogate into the parent
+        if (parentIndex == DEFAULT) {
+            // Create a new parent
+            Node *parentNode = new Node();
 
-           // The parent node is not a leaf node
-           parentNode->setInternal();
+            // The parent node is not a leaf node
+            parentNode->setInternal();
 
-           // Update the parent for both
-           this->setParentIndex(parentNode->getFileIndex());
-           surrogateNode->setParentIndex(parentNode->getFileIndex());
+            // Update the parent for both
+            this->setParentIndex(parentNode->getFileIndex());
+            surrogateNode->setParentIndex(parentNode->getFileIndex());
 
-           // Update the parentNode with two children
-           parentNode->insertNode(this);
-           parentNode->insertNode(surrogateNode);
+            // Update the parentNode with two children
+            parentNode->insertNode(this);
+            parentNode->insertNode(surrogateNode);
 
-           // Store the changes made to the parent
-           this->storeNodeToDisk();
-           surrogateNode->storeNodeToDisk();
-           parentNode->storeNodeToDisk();
+            // Store the changes made to the parent
+            this->storeNodeToDisk();
+            surrogateNode->storeNodeToDisk();
+            parentNode->storeNodeToDisk();
 
-           // Clean up
-           delete surrogateNode;
+            // Clean up
+            delete surrogateNode;
 
-           // Update RRoot
-           delete RRoot;
-           RRoot = parentNode;
-       } else {
-           // Insert the new node into the existing parent
-           Node *parentNode = new Node(parentIndex);
+            // Update RRoot
+            delete RRoot;
+            RRoot = parentNode;
+        } else {
+            // Insert the new node into the existing parent
+            Node *parentNode = new Node(parentIndex);
 
-           // Update the parent Node
-           parentNode->insertNode(surrogateNode);
+            // Update the parent Node
+            parentNode->insertNode(surrogateNode);
 
-           // Store the changes made to the parent
-           surrogateNode->storeNodeToDisk();
-           this->storeNodeToDisk();
-           parentNode->storeNodeToDisk();
+            // Store the changes made to the parent
+            surrogateNode->storeNodeToDisk();
+            this->storeNodeToDisk();
+            parentNode->storeNodeToDisk();
 
-           // If the updated parentNode is the root
-           if (parentNode->getFileIndex() == RRoot->getFileIndex()) {
-               delete RRoot;
-               RRoot = parentNode;
-           } else {
-               delete parentNode;
-           }
+            // If the updated parentNode is the root
+            if (parentNode->getFileIndex() == RRoot->getFileIndex()) {
+                delete RRoot;
+                RRoot = parentNode;
+            } else {
+                delete parentNode;
+            }
 
-           // Store the node to disk and delete the pointer
-           delete surrogateNode;
+            // Store the node to disk and delete the pointer
+            delete surrogateNode;
 
-           // The parent has overflown
-           if (parentNode->getChildCount() > Node::upperBound) {
-               parentNode->splitNode();
-           }
-       }
-   }
+            // The parent has overflown
+            if (parentNode->getChildCount() > Node::upperBound) {
+                parentNode->splitNode();
+            }
+        }
+    }
 
-   // Insert a node into the tree
-   void insert(Node *root, DBObject object) {
-       // If the node is a leaf, then we insert
-       if (root->isLeaf()) {
-           // Insert the object
-           root->insertObject(object);
+    // Insert a node into the tree
+    void insert(Node *root, DBObject object) {
+        // If the node is a leaf, then we insert
+        if (root->isLeaf()) {
+            // Insert the object
+            root->insertObject(object);
 
-           // We have made changes to the root
-           root->storeNodeToDisk();
+            // We have made changes to the root
+            root->storeNodeToDisk();
 
-           // Check for overflow
-           if (root->getChildCount() > Node::getUpperBound()) {
-               root->splitNode();
-           }
+            // Check for overflow
+            if (root->getChildCount() > Node::getUpperBound()) {
+                root->splitNode();
+            }
 
 #ifdef DEBUG_VERBOSE
-           // print tree
-           cout << "Insert: ";
-           object.print();
-           printTree(RRoot);
+            // print tree
+            cout << "Insert: ";
+            object.print();
+            printTree(RRoot);
 #endif
-       } else {
-           // We traverse the tree
-           long position = root->getInsertPosition(object.getPoint());
+        } else {
+            // We traverse the tree
+            long position = root->getInsertPosition(object.getPoint());
 
-           // Load the node from disk
-           Node *nextRoot = new Node(root->childIndices[position]);
+            // Load the node from disk
+            Node *nextRoot = new Node(root->childIndices[position]);
 
-           // Update the node with new MBR
-           nextRoot->updateMBR(object.getPoint());
+            // Update the node with new MBR
+            nextRoot->updateMBR(object.getPoint());
 
-           // Store the changes to disk
-           nextRoot->storeNodeToDisk();
+            // Recurse into the node
+            insert(nextRoot, object);
 
-           // Recurse into the node
-           insert(nextRoot, object);
+            // Store the changes to disk
+            nextRoot->storeNodeToDisk();
 
-           // Store the changes made to the node to disk and clean up
-           delete nextRoot;
-       }
-   }
+            // Store the changes made to the node to disk and clean up
+            delete nextRoot;
+        }
+    }
+
+    void pointSearch(Node *root, vector<double> point) {
+        if (root->isLeaf()) {
+            for (long i = 0; i < (long)root->childIndices.size(); ++i) {
+                if (point == root->childLowerPoints[i]) {
+                    // Load the object and print it
+                    DBObject object(point, root->childIndices[i]);
+                    cout << object.getDataString() << endl;
+                }
+            }
+        } else {
+            // Descend into all possible children
+            cout << "Root: ";
+            root->printMBR();
+            root->printInMemoryNode();
+
+            for (long i = 0; i < (long)root->childIndices.size(); ++i) {
+                if(root->getDistanceOfPoint(root->childUpperPoints[i], root->childLowerPoints[i], point) == 0) {
+                    Node *tempNode = new Node(root->childIndices[i]);
+                    cout << "Node: ";
+                    tempNode->printMBR();
+
+                    pointSearch(tempNode, point);
+                    delete tempNode;
+                }
+            }
+        }
+    }
 };
 
 using namespace RTree;
