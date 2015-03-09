@@ -99,6 +99,13 @@ namespace RTree {
             // Return the key of the object
             vector<double> getPoint() { return point; }
 
+            // Print the DBObject
+            void print() {
+                cout << "( ";
+                copy(point.begin(), point.end(), ostream_iterator<double>(cout, " "));
+                cout << ") ";
+            }
+
             // Return the string
             string getDataString() const { return dataString; }
 
@@ -904,9 +911,10 @@ namespace RTree {
            }
 
 #ifdef DEBUG_VERBOSE
-           // print tree
-           cout << "Insert: ";
-           printTree(RRoot);
+            // print tree
+            cout << "Insert: ";
+            object.print();
+            printTree(RRoot);
 #endif
        } else {
            // We traverse the tree
