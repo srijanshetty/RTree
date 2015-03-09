@@ -212,6 +212,7 @@ namespace RTree {
 #ifdef DEBUG_NORMAL
             void printInMemoryNode() const;
             void printStoredNode() const;
+            void printMBR() const;
 #endif
 
             // Get the position of insertion of a point
@@ -491,6 +492,15 @@ namespace RTree {
         Node *tempNode = new Node(fileIndex);
         tempNode->printInMemoryNode();
         delete tempNode;
+    }
+
+    void Node::printMBR() const {
+        // Print the MBR
+        cout << "[( ";
+        copy(upperCoordinates.begin(), upperCoordinates.end(), ostream_iterator<double>(cout, " "));
+        cout << "),( ";
+        copy(lowerCoordinates.begin(), lowerCoordinates.end(), ostream_iterator<double>(cout, " "));
+        cout << ")] ";
     }
 #endif
 
@@ -1001,16 +1011,17 @@ int main() {
     vector<double> p1 = {1,2};
     insert(RRoot, DBObject(p1, "srijan"));
     vector<double> p2 = {3,1};
-    insert(RRoot, DBObject(p2, "srijan"));
+    insert(RRoot, DBObject(p2, "srija"));
     vector<double> p3 = {5,10};
-    insert(RRoot, DBObject(p3, "srijan"));
+    insert(RRoot, DBObject(p3, "srij"));
     vector<double> p4 = {1,1};
-    insert(RRoot, DBObject(p4, "srijan"));
+    insert(RRoot, DBObject(p4, "sri"));
     vector<double> p5 = {3,4};
-    insert(RRoot, DBObject(p5, "srijan"));
+    insert(RRoot, DBObject(p5, "sr"));
     vector<double> p6 = {1,4};
-    insert(RRoot, DBObject(p6, "srijan"));
-    RRoot = new Node(1);
+    insert(RRoot, DBObject(p6, "s"));
+    insert(RRoot, DBObject(p6, "s"));
+    pointSearch(RRoot, p6);
 
     // Load session or build a new tree
     // ifstream sessionFile(SESSION_FILE);
