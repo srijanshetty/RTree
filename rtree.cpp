@@ -218,6 +218,9 @@ namespace RTree {
             // Get the position of insertion of a point
             long getInsertPosition(vector<double> point) const;
 
+            // Update the MBR in parent
+            void updateChildMBRInParent();
+
             // Update the MBR of a node
             void updateMBR(vector<double> point);
             void updateMBR(Node *nodeToInsert);
@@ -504,6 +507,30 @@ namespace RTree {
     }
 #endif
 
+    void Node::updateChildMBRInParent() {
+        if (parentIndex != DEFAULT) {
+            Node *parent = new Node(parentIndex);
+
+            for (long i = 0; i < (long) parent->childIndices.size(); ++i) {
+                if (parent->childIndices[i] == fileIndex) {
+                    parent->childUpperPoints[i] = upperCoordinates;
+                    parent->childLowerPoints[i] = lowerCoordinates;
+                    break;
+                }
+            }
+
+            // Store the parent back and cleaup
+            parent->storeNodeToDisk();
+
+            if (parent->getFileIndex() == RRoot->getFileIndex()) {
+                delete RRoot;
+                RRoot = parent;
+            } else {
+                delete parent;
+            }
+        }
+    }
+
     void Node::updateMBR(vector<double> point) {
         for (long i = 0; i < DIMENSION; ++i) {
             // lowerPoint is the min of existing and point
@@ -512,6 +539,9 @@ namespace RTree {
             // upperPoint is max of existing and point
             upperCoordinates[i] = max(upperCoordinates[i], point[i]);
         }
+
+        // Update the MBR in parent
+        updateChildMBRInParent();
     }
 
     void Node::updateMBR(Node *nodeToInsert) {
@@ -522,6 +552,9 @@ namespace RTree {
             // upperPoint is max of existing and point
             upperCoordinates[i] = max(upperCoordinates[i], nodeToInsert->upperCoordinates[i]);
         }
+
+        // Update the MBR in parent
+        updateChildMBRInParent();
     }
 
     void Node::resizeMBR() {
@@ -538,6 +571,9 @@ namespace RTree {
                 upperCoordinates[j] = max(upperCoordinates[j], childUpperPoints[i][j]);
             }
         }
+
+        // Update the MBR in parent
+        updateChildMBRInParent();
     }
 
     long Node::getInsertPosition(vector<double> point) const {
@@ -987,11 +1023,11 @@ namespace RTree {
             // Update the node with new MBR
             nextRoot->updateMBR(object.getPoint());
 
-            // Recurse into the node
-            insert(nextRoot, object);
-
             // Store the changes to disk
             nextRoot->storeNodeToDisk();
+
+            // Recurse into the node
+            insert(nextRoot, object);
 
             // Store the changes made to the node to disk and clean up
             delete nextRoot;
