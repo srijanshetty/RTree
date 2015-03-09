@@ -193,6 +193,9 @@ namespace RTree {
             // Get the volume of two passed points
             double getVolume (vector<double> upperPoint, vector<double> lowerPoint) const;
 
+            // Get the volume enlargment by adding a point
+            double getVolumeEnlargement(vector<double> upperPoint, vector<double> lowerPoint, vector<double> point) const;
+
             // General Distance
             double getDistanceOfPoint(vector<double> upperPoint, vector<double> lowerPoint, vector<double> point) const;
 
@@ -273,6 +276,22 @@ namespace RTree {
             volume *= abs(upperPoint[i] - lowerPoint[i]);
         }
         return volume;
+    }
+
+    double Node::getVolumeEnlargement(vector<double> upperPoint, vector<double> lowerPoint, vector<double> point) const {
+        // Find the coordinates if we insert the point
+        vector<double> tempUpperPoint = vector<double>(DIMENSION, numeric_limits<double>::min());
+        vector<double> tempLowerPoint = vector<double>(DIMENSION, numeric_limits<double>::max());
+        for (long i = 0; i < DIMENSION; ++i) {
+            // lowerPoint is the min of existing and point
+            tempLowerPoint[i] = min(tempLowerPoint[i], point[i]);
+
+            // upperPoint is max of existing and point
+            tempUpperPoint[i] = max(tempUpperPoint[i], point[i]);
+        }
+
+        // Compute the volume enlargement
+        return getVolume(tempUpperPoint, tempLowerPoint) - getVolume(upperPoint, lowerPoint);
     }
 
     double Node::getDistanceOfPoint(vector<double> upperPoint, vector<double> lowerPoint, vector<double> point) const {
@@ -512,7 +531,39 @@ namespace RTree {
    }
 
    long Node::getInsertPosition(vector<double> point) const {
+       // Find all possible insertion points
+       vector< long > possibleInsertionIndices;
+       for (long i = 0; i < (long)childIndices.size(); ++i) {
+           if (getDistanceOfPoint(childUpperPoints[i], childLowerPoints[i], point) == 0) {
+               possibleInsertionIndices.push_back(i);
+           }
+       }
+
+       // If none of them intersect
+       if (possibleInsertionIndices.size() == 0) {
+           // TODO: Use size
+           return 0;
+       }
+
+       // If there is only one possible insertion point then we return that
+       if (possibleInsertionIndices.size() == 1) {
+           return possibleInsertionIndices.front();
+       }
+
+       // For multiple possibleInsertionIndices, we compute the least volume enlargement
+       double minVolumeEnlargement = numeric_limits<double>::max();
+       double minIndex = -1;
+       for (auto childIndex : possibleInsertionIndices) {
+           if (getVolumeEnlargement(childUpperPoints[childIndex], childLowerPoints[childIndex], point) < minVolumeEnlargement) {
+               minIndex = childIndex;
+           }
+       }
+
+       return minIndex;
+
+       // TODO: Use size as a tie breaker
    }
+
 
    void Node::insertObject(DBObject object) {
        vector<double> objectPoint = object.getPoint();
@@ -957,6 +1008,8 @@ int main() {
     insert(RRoot, DBObject(p4, "srijan"));
     vector<double> p5 = {3,4};
     insert(RRoot, DBObject(p5, "srijan"));
+    vector<double> p6 = {1,4};
+    insert(RRoot, DBObject(p6, "srijan"));
     RRoot = new Node(1);
 
     // Load session or build a new tree
