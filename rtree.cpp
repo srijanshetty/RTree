@@ -811,6 +811,12 @@ namespace RTree {
 
     void Node::splitNode() {
         // QUADRATIC SPLIT
+#ifdef DEBUG_VV
+        cout << "SplitNode: " << endl;
+        cout << "Root: " << endl;
+        this->printInMemoryNode();
+        cout << endl;
+#endif
 
         // Find the first two seeds using volume wasted
         long size = childIndices.size();
@@ -986,6 +992,13 @@ namespace RTree {
             surrogateNode->storeNodeToDisk();
             parentNode->storeNodeToDisk();
 
+#ifdef DEBUG_VV
+            cout << "SurrogateNode : ";
+            surrogateNode->printInMemoryNode();
+            cout << "This: ";
+            this->printInMemoryNode();
+#endif
+
             // Clean up
             delete surrogateNode;
 
@@ -1011,6 +1024,15 @@ namespace RTree {
             } else {
                 delete parentNode;
             }
+
+#ifdef DEBUG_VV
+            cout << "SurrogateNode : " << endl;
+            surrogateNode->printInMemoryNode();
+            cout << endl;
+            cout << "This: " << endl;
+            this->printInMemoryNode();
+            cout << endl;
+#endif
 
             // Store the node to disk and delete the pointer
             delete surrogateNode;
@@ -1106,6 +1128,7 @@ int main() {
     vector<double> p5 = {3,4};
     insert(RRoot, DBObject(p5, "sr"));
     vector<double> p6 = {1,4};
+    insert(RRoot, DBObject(p6, "s"));
     insert(RRoot, DBObject(p6, "s"));
     insert(RRoot, DBObject(p6, "s"));
     insert(RRoot, DBObject(p6, "s"));
