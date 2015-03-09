@@ -1045,16 +1045,9 @@ namespace RTree {
             }
         } else {
             // Descend into all possible children
-            cout << "Root: ";
-            root->printMBR();
-            root->printInMemoryNode();
-
             for (long i = 0; i < (long)root->childIndices.size(); ++i) {
                 if(root->getDistanceOfPoint(root->childUpperPoints[i], root->childLowerPoints[i], point) == 0) {
                     Node *tempNode = new Node(root->childIndices[i]);
-                    cout << "Node: ";
-                    tempNode->printMBR();
-
                     pointSearch(tempNode, point);
                     delete tempNode;
                 }
@@ -1083,6 +1076,9 @@ int main() {
     vector<double> p5 = {3,4};
     insert(RRoot, DBObject(p5, "sr"));
     vector<double> p6 = {1,4};
+    insert(RRoot, DBObject(p6, "s"));
+    insert(RRoot, DBObject(p6, "s"));
+    insert(RRoot, DBObject(p6, "s"));
     insert(RRoot, DBObject(p6, "s"));
     insert(RRoot, DBObject(p6, "s"));
     pointSearch(RRoot, p6);
