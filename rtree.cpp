@@ -267,20 +267,16 @@ namespace RTree {
         lowerBound = 2;
     }
 
-    double Node::getVolume() const {
-        double volume = 1;
-        for (long i = 0; i < DIMENSION; ++i) {
-            volume *= (upperCoordinates[i] - lowerCoordinates[i]);
-        }
-        return volume;
-    }
-
     double Node::getVolume(vector<double> upperPoint, vector<double> lowerPoint) const {
         double volume = 1;
         for (long i = 0; i < DIMENSION; ++i) {
             volume *= abs(upperPoint[i] - lowerPoint[i]);
         }
         return volume;
+    }
+
+    double Node::getVolume() const {
+        return getVolume(upperCoordinates, lowerCoordinates);
     }
 
     double Node::getVolumeEnlargement(vector<double> upperPoint, vector<double> lowerPoint, vector<double> point) const {
