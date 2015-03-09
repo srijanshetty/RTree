@@ -144,8 +144,6 @@ namespace RTree {
             vector<double> lowerCoordinates = vector<double>(DIMENSION, numeric_limits<double>::max());
             vector< vector<double> > childLowerPoints;
             vector< vector<double> > childUpperPoints;
-
-        public:
             vector<long> childIndices;
 
         public:
@@ -191,7 +189,7 @@ namespace RTree {
             // General Distance
             double getDistanceOfPoint(vector<double> upperPoint, vector<double> lowerPoint, vector<double> point) const;
 
-            // Distance of Point for a given node
+            // Distance of Point from a given node
             double getDistanceOfPoint(vector<double> point) const;
 
             // Store the node to disk
@@ -201,10 +199,13 @@ namespace RTree {
             void loadNodeFromDisk();
 
             // Print the node
-            void printNode() const;
+#ifdef DEBUG_NORMAL
+            void printInMemoryNode() const;
+            void printStoredNode() const;
+#endif
 
             // Get the position of insertion of a point
-            long getPointPosition(vector<double> point) const;
+            long getInsertPosition(vector<double> point) const;
 
             // Update the MBR of a node
             void updateMBR(vector<double> point);
@@ -420,7 +421,7 @@ namespace RTree {
     }
 
 #ifdef DEBUG_NORMAL
-    void Node::printNode() const {
+    void Node::printInMemoryNode() const {
         cout << "Leaf: " << leaf << endl;
         cout << "FileIndex: " << fileIndex << endl;
         cout << "Parent: " << parentIndex << endl;
@@ -458,6 +459,12 @@ namespace RTree {
             }
             cout << endl;
         }
+    }
+
+    void Node::printStoredNode() const {
+        Node *tempNode = new Node(fileIndex);
+        tempNode->printInMemoryNode();
+        delete tempNode;
     }
 #endif
 
@@ -497,7 +504,7 @@ namespace RTree {
        }
    }
 
-   long Node::getPointPosition(vector<double> point) const {
+   long Node::getInsertPosition(vector<double> point) const {
    }
 
    void Node::insertObject(DBObject object) {
@@ -903,7 +910,7 @@ namespace RTree {
 #endif
        } else {
            // We traverse the tree
-           long position = root->getPointPosition(object.getPoint());
+           long position = root->getInsertPosition(object.getPoint());
 
            // Load the node from disk
            Node *nextRoot = new Node(root->childIndices[position]);
