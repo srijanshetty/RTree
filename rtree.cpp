@@ -962,10 +962,10 @@ namespace RTree {
            }
 
 #ifdef DEBUG_VERBOSE
-            // print tree
-            cout << "Insert: ";
-            object.print();
-            printTree(RRoot);
+           // print tree
+           cout << "Insert: ";
+           object.print();
+           printTree(RRoot);
 #endif
        } else {
            // We traverse the tree
