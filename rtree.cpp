@@ -450,43 +450,29 @@ namespace RTree {
 
 #ifdef DEBUG_NORMAL
     void Node::printInMemoryNode() const {
-        cout << "Leaf: " << leaf << endl;
-        cout << "FileIndex: " << fileIndex << endl;
-        cout << "Parent: " << parentIndex << endl;
-        cout << "SizeOfSubtree: " << sizeOfSubtree << endl;
+        // cout << "Leaf: " << leaf << endl;
+        // cout << "FileIndex: " << fileIndex << endl;
+        // cout << "Parent: " << parentIndex << endl;
+        // cout << "SizeOfSubtree: " << sizeOfSubtree << endl;
 
-        cout << "UpperCoordinates: ";
-        // Add the bounds of the MBR to the tree
-        for (auto upperCoordinate : upperCoordinates) {
-            cout << upperCoordinate << " ";
-        }
-        cout << endl;
-
-        cout << "LowerCoordinates: ";
-        for (auto lowerCoordinate : lowerCoordinates) {
-            cout << lowerCoordinate << " ";
-        }
+        cout << endl << "[ " << leaf << ", " << fileIndex << " ] : \t\t";
+        printMBR();
         cout << endl;
 
         // Now we put the childIndices to the buffer
-        long numberOfChildren = childIndices.size();
-        for (long i = 0; i < numberOfChildren; ++i) {
-            cout << "Child " << i << ": " << endl;
-            cout << "\t Index: " << childIndices[i] << endl;
+        for (long i = 0; i < (long) childIndices.size(); ++i) {
+            cout << "Child " << i << ": \t";
 
             // Copy the given child
-            cout << "\t LowerPoints: ";
-            for (long j = 0; j < DIMENSION; ++j) {
-                cout << childLowerPoints[i][j] << " ";
-            }
-            cout << endl;
-
-            cout << "\t UpperPoints: ";
-            for (long j = 0; j < DIMENSION; ++j) {
-                cout << childUpperPoints[i][j] << " ";
-            }
-            cout << endl;
+            cout << "\t [";
+            printPoint(childLowerPoints[i]);
+            cout << ",";
+            printPoint(childUpperPoints[i]);
+            cout << "]" << endl;
         }
+
+        // Prettify
+        cout << endl;
     }
 
     void Node::printStoredNode() const {
@@ -581,7 +567,7 @@ namespace RTree {
         double volumeEnlargement;
         double minSize;
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_INSERTPOSITION
         cout << "getInsertPosition : " << endl;
 #endif
 
@@ -590,7 +576,7 @@ namespace RTree {
             // Compute the minimum volume enlargement
             volumeEnlargement = getVolumeEnlargement(childUpperPoints[i], childLowerPoints[i], point);
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_INSERTPOSITION
             Node *child = new Node(childIndices[i]);
             child->printMBR();
             cout << " : " << volumeEnlargement << endl;
@@ -807,11 +793,10 @@ namespace RTree {
 
     void Node::splitNode() {
         // QUADRATIC SPLIT
-#ifdef DEBUG_VV
+#ifdef DEBUG_SPLITNODE
         cout << "SplitNode: " << endl;
-        cout << "Root: " << endl;
+        cout << "Root: ";
         this->printInMemoryNode();
-        cout << endl;
 #endif
 
         // Find the first two seeds using volume wasted
@@ -848,6 +833,10 @@ namespace RTree {
                 }
             }
         }
+
+#ifdef DEBUG_SPLITNODE
+        cout << "Seeds : " << childIndices[firstSeed] << " " << childIndices[secondSeed] << endl;
+#endif
 
         // Add the firstSeed to the split
         vector<long> firstSplit = { firstSeed };
@@ -993,7 +982,7 @@ namespace RTree {
             surrogateNode->storeNodeToDisk();
             parentNode->storeNodeToDisk();
 
-#ifdef DEBUG_VV
+#ifdef DEBUG_SPLITNODE
             cout << "SurrogateNode : ";
             surrogateNode->printInMemoryNode();
             cout << "This: ";
@@ -1026,13 +1015,11 @@ namespace RTree {
                 delete parentNode;
             }
 
-#ifdef DEBUG_VV
-            cout << "SurrogateNode : " << endl;
+#ifdef DEBUG_SPLITNODE
+            cout << "SurrogateNode : ";
             surrogateNode->printInMemoryNode();
-            cout << endl;
-            cout << "This: " << endl;
+            cout << "This: ";
             this->printInMemoryNode();
-            cout << endl;
 #endif
 
             // Store the node to disk and delete the pointer

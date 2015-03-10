@@ -28,8 +28,15 @@
 
 // -- Verbosity Level --
 // #define DEBUG_NORMAL
-#define DEBUG_VERBOSE
-// #define DEBUG_VV
+// #define DEBUG_V
+// #define DEBUG_SPLITNODE
+// #define DEBUG_INSERTPOSITION
+
+// -- Verbosity Level VV --
+#ifdef DEBUG_V
+#define DEBUG_INSERTPOSITION
+#define DEBUG_SPLITNODE
+#endif
 
 // -- Auto Generated --
 #define PAGESIZE 2048
