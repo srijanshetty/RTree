@@ -1093,6 +1093,45 @@ namespace RTree {
 
 using namespace RTree;
 
+void buildTree() {
+    ifstream ifile;
+    ifile.open("./assgn4_r_data.txt", ios::in);
+
+#ifdef DEBUG_NORMAL
+    long count = 1;
+#endif
+
+    vector <double> point;
+    double coordinate;
+    string dataString;
+    while (!ifile.eof()) {
+        // Get the point
+        point.clear();
+        for (long i = 0; i < DIMENSION; ++i) {
+            ifile >> coordinate;
+            point.push_back(coordinate);
+        }
+
+        // Get the data string
+        ifile >> dataString;
+
+        // Some quirk which needs to be handled
+        if (ifile.eof()) {
+            break;
+        }
+
+#ifdef DEBUG_NORMAL
+        cout << "Inserting " << count++ << endl;
+#endif
+
+        // Insert the object into file
+        insert(RRoot, DBObject(point, dataString));
+    }
+
+    // Close the file
+    ifile.close();
+}
+
 int main() {
     // Initialize the BPlusTree module
     Node::initialize();
@@ -1100,33 +1139,12 @@ int main() {
     // Create a new tree
     RRoot = new Node();
 
-    vector<double> p1 = {1,2};
-    insert(RRoot, DBObject(p1, "srijan"));
-    vector<double> p2 = {3,1};
-    insert(RRoot, DBObject(p2, "srija"));
-    vector<double> p3 = {5,10};
-    insert(RRoot, DBObject(p3, "srij"));
-    vector<double> p4 = {1,1};
-    insert(RRoot, DBObject(p4, "sri"));
-    vector<double> p5 = {3,4};
-    insert(RRoot, DBObject(p5, "sr"));
-    vector<double> p6 = {1,4};
-    insert(RRoot, DBObject(p6, "s"));
-    insert(RRoot, DBObject(p6, "s"));
-    insert(RRoot, DBObject(p6, "s"));
-    insert(RRoot, DBObject(p6, "s"));
-    insert(RRoot, DBObject(p6, "s"));
-    insert(RRoot, DBObject(p6, "s"));
-    insert(RRoot, DBObject(p6, "s"));
-    insert(RRoot, DBObject(p6, "s"));
-    pointSearch(RRoot, p6);
-
     // Load session or build a new tree
     // ifstream sessionFile(SESSION_FILE);
     // if (sessionFile.good()) {
     // loadSession();
     // } else {
-    // buildTree();
+    buildTree();
     // }
 
     // Process queries
