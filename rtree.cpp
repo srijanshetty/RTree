@@ -1122,6 +1122,8 @@ int main() {
     insert(RRoot, DBObject(p6, "s"));
     insert(RRoot, DBObject(p6, "s"));
     insert(RRoot, DBObject(p6, "s"));
+    insert(RRoot, DBObject(p6, "s"));
+    insert(RRoot, DBObject(p6, "s"));
     pointSearch(RRoot, p6);
 
     // Load session or build a new tree
