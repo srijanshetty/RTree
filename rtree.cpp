@@ -29,11 +29,6 @@
 #define OBJECT_FILE "objects/objectFile"
 #define DEFAULT -1
 
-// If the DEBUG level is VERBOSE then it is automatically normal
-#ifdef DEBUG_VERBOSE
-#define DEBUG_NORMAL
-#endif
-
 // Standard Streams
 #include <iostream>
 #include <fstream>
@@ -1047,7 +1042,7 @@ namespace RTree {
                 root->splitNode();
             }
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_INSERT
             // print tree
             cout << endl << "Insert: ";
             printPoint(object.getPoint());
