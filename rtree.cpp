@@ -817,7 +817,7 @@ namespace RTree {
         // Find the first two seeds using volume wasted
         long size = childIndices.size();
         long firstSeed = 0;
-        long secondSeed = 0;
+        long secondSeed = 1;
 
         double maxWaste = numeric_limits<double>::min();
         double waste = 0;
@@ -827,7 +827,7 @@ namespace RTree {
 
         // Find the seeds by computing max wastage
         for (long i = 0; i < size; ++i) {
-            for (long j = i; j < size; ++j) {
+            for (long j = i + 1; j < size; ++j) {
                 // Get the covering rectangle of the points in consideration
                 maxCoordinates.clear();
                 minCoordinates.clear();
@@ -890,7 +890,7 @@ namespace RTree {
                 - getVolume(childUpperPoints[i], childLowerPoints[i]);
 
             // If the firsSeedWaste is lesser, we add the node to the first split
-            if (firstSeedWaste < secondSeedWaste) {
+            if (firstSeedWaste <= secondSeedWaste) {
                 firstSplit.push_back(i);
             } else {
                 secondSplit.push_back(i);
@@ -962,6 +962,11 @@ namespace RTree {
 
         // Resize the surrogate Node and store to disk
         surrogateNode->setParentIndex(parentIndex);
+
+        // set the status of the surrougate node according to the status of this
+        if (!this->isLeaf()) {
+            surrogateNode->setInternal();
+        }
 
         // Fix the MBR
         this->resizeMBR();
