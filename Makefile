@@ -17,7 +17,7 @@ restore: setup-files tree.out
 tree.out: rtree.o
 	$(CC) $(DEBUG) rtree.o -o tree.out
 
-rtree.o: rtree.cpp
+rtree.o: rtree.cpp config.h
 	$(CC) $(CFLAGS) $(DEBUG) config.h rtree.cpp
 
 # rtree.cpp: rtree.config configure
