@@ -1020,7 +1020,7 @@ namespace RTree {
             delete surrogateNode;
 
             // The parent has overflown
-            if (parentNode->getChildCount() > Node::upperBound) {
+            if (parentNode->getChildCount() > parentNode->getUpperBound()) {
                 parentNode->splitNode();
             }
         }
