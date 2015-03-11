@@ -54,13 +54,11 @@ namespace RTree {
     // We use the std namespace freely
     using namespace std;
 
-#ifdef DEBUG_NORMAL
     void printPoint(vector <double> point) {
         cout << "( ";
         copy(point.begin(), point.end(), ostream_iterator<double>(cout, " "));
         cout << ") ";
     }
-#endif
 
     // Database objects
     class DBObject {
@@ -1089,7 +1087,7 @@ namespace RTree {
             for (long i = 0; i < (long)root->childIndices.size(); ++i) {
                 if (point == root->childLowerPoints[i]) {
                     // Load the object and print it
-                    DBObject object(point, root->childIndices[i]);
+                    DBObject object(root->childLowerPoints[i], root->childIndices[i]);
                     cout << object.getDataString() << endl;
                 }
             }
@@ -1110,7 +1108,7 @@ namespace RTree {
             for (long i = 0; i < (long)root->childIndices.size(); ++i) {
                 if (root->getDistanceBetweenPoints(point, root->childLowerPoints[i]) <= range) {
                     // Load the object and print it
-                    DBObject object(point, root->childIndices[i]);
+                    DBObject object(root->childLowerPoints[i], root->childIndices[i]);
                     cout << object.getDataString() << endl;
                 }
             }
@@ -1176,12 +1174,12 @@ int main() {
     RRoot = new Node();
 
     // Load session or build a new tree
-    // ifstream sessionFile(SESSION_FILE);
-    // if (sessionFile.good()) {
-    // loadSession();
-    // } else {
-    buildTree();
-    // }
+    ifstream sessionFile(SESSION_FILE);
+    if (sessionFile.good()) {
+        loadSession();
+    } else {
+        buildTree();
+    }
 
     vector<double> point = {0.0, 0.0};
     rangeSearch(RRoot, point, sqrt(2));
@@ -1190,7 +1188,7 @@ int main() {
     // processQuery();
 
     // Store the session
-    // storeSession();
+    storeSession();
 
     return 0;
 }
