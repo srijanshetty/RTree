@@ -780,7 +780,7 @@ namespace RTree {
         DBObject::setObjectCount(objectCount);
 
         // Delete the current root and load it from disk
-        delete RRoot;
+        delete RRoot; // Safe deletion as no one reference RRoot yet
         RRoot = new Node(fileIndex);
         RRoot->loadNodeFromDisk();
     }
@@ -987,7 +987,7 @@ namespace RTree {
             delete surrogateNode;
 
             // Update RRoot
-            delete RRoot;
+            // delete RRoot;
             RRoot = parentNode;
         } else {
             // Insert the new node into the existing parent
@@ -1001,14 +1001,6 @@ namespace RTree {
             this->storeNodeToDisk();
             parentNode->storeNodeToDisk();
 
-            // If the updated parentNode is the root
-            if (parentNode->getFileIndex() == RRoot->getFileIndex()) {
-                delete RRoot;
-                RRoot = parentNode;
-            } else {
-                delete parentNode;
-            }
-
 #ifdef DEBUG_SPLITNODE
             cout << "SurrogateNode : ";
             surrogateNode->printInMemoryNode();
@@ -1019,9 +1011,20 @@ namespace RTree {
             // Store the node to disk and delete the pointer
             delete surrogateNode;
 
+            // If the updated parentNode is the root
+            if (parentNode->getFileIndex() == RRoot->getFileIndex()) {
+                // delete RRoot;
+                RRoot = parentNode;
+            }
+
             // The parent has overflown
             if (parentNode->getChildCount() > parentNode->getUpperBound()) {
                 parentNode->splitNode();
+            }
+
+            // If the updated parentNode is the root
+            if (parentNode->getFileIndex() != RRoot->getFileIndex()) {
+                delete parentNode;
             }
         }
     }
