@@ -1086,9 +1086,11 @@ namespace RTree {
         if (root->isLeaf()) {
             for (long i = 0; i < (long)root->childIndices.size(); ++i) {
                 if (point == root->childLowerPoints[i]) {
+#ifdef OUTPUT
                     // Load the object and print it
                     DBObject object(root->childLowerPoints[i], root->childIndices[i]);
                     cout << object.getDataString() << endl;
+#endif
                 }
             }
         } else {
@@ -1107,9 +1109,11 @@ namespace RTree {
         if (root->isLeaf()) {
             for (long i = 0; i < (long)root->childIndices.size(); ++i) {
                 if (root->getDistanceBetweenPoints(point, root->childLowerPoints[i]) <= range) {
+#ifdef OUTPUT
                     // Load the object and print it
                     DBObject object(root->childLowerPoints[i], root->childIndices[i]);
                     cout << object.getDataString() << endl;
+#endif
                 }
             }
         } else {
@@ -1130,9 +1134,11 @@ namespace RTree {
             for (long i = 0; i < (long)root->childIndices.size(); ++i) {
                 distance = root->getDistanceOfPoint(upperPoint, lowerPoint, root->childLowerPoints[i]);
                 if (distance == 0) {
+#ifdef OUTPUT
                     // Load the object and print it
                     DBObject object(root->childLowerPoints[i], root->childIndices[i]);
                     cout << object.getDataString() << endl;
+#endif
                 }
             }
         } else {
@@ -1150,6 +1156,9 @@ namespace RTree {
                 }
             }
         }
+    }
+
+    void kNNSearch(Node *root, long k) {
     }
 };
 
@@ -1194,6 +1203,142 @@ void buildTree() {
     ifile.close();
 }
 
+void processQuery() {
+    ifstream ifile;
+    ifile.open("./assgn4_r_querysample.txt", ios::in);
+
+    long query;
+
+    // Loop over the entire file
+    while (ifile >> query) {
+        if (query == 0) {
+            // Get the point from the file
+            vector <double> point;
+            double coordinate;
+            for (long i = 0; i < DIMENSION; ++i) {
+                ifile >> coordinate;
+                point.push_back(coordinate);
+            }
+
+            // Get the data string
+            string dataString;
+            ifile >> dataString;
+
+#ifdef OUTPUT
+            cout << endl << query << " ";
+            printPoint(point);
+            cout << " " << dataString << endl;
+#endif
+#ifdef TIME
+            cout << query << " ";
+            auto start = std::chrono::high_resolution_clock::now();
+#endif
+            // Insert into the database
+            insert(RRoot, DBObject(point, dataString));
+#ifdef TIME
+            auto elapsed = std::chrono::high_resolution_clock::now() - start;
+            long long microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+            cout << microseconds << endl;
+#endif
+        } else if (query == 1) {
+            // Get the point from the file
+            vector <double> point;
+            double coordinate;
+            for (long i = 0; i < DIMENSION; ++i) {
+                ifile >> coordinate;
+                point.push_back(coordinate);
+            }
+
+#ifdef OUTPUT
+            cout << endl << query << " ";
+            printPoint(point);
+            cout << endl;
+#endif
+#ifdef TIME
+            cout << query << " ";
+            auto start = std::chrono::high_resolution_clock::now();
+#endif
+            // Insert into the database
+            pointSearch(RRoot, point);
+#ifdef TIME
+            auto elapsed = std::chrono::high_resolution_clock::now() - start;
+            long long microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+            cout << microseconds << endl;
+#endif
+        } else if (query == 2) {
+            // Get the point from the file
+            vector <double> point;
+            double coordinate;
+            for (long i = 0; i < DIMENSION; ++i) {
+                ifile >> coordinate;
+                point.push_back(coordinate);
+            }
+
+            // Get the range
+            double range;
+            ifile >> range;
+
+#ifdef OUTPUT
+            cout << endl << query << " ";
+            printPoint(point);
+            cout << " " << range << endl;
+#endif
+#ifdef TIME
+            cout << query << " ";
+            auto start = std::chrono::high_resolution_clock::now();
+#endif
+            // rangeSearch
+            rangeSearch(RRoot, point, range * 0.1);
+#ifdef TIME
+            auto elapsed = std::chrono::high_resolution_clock::now() - start;
+            long long microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+            cout << microseconds << endl;
+#endif
+        } else if (query == 3) {
+
+        } else if (query == 4) {
+            // Get the point from the file
+            vector <double> lowerPoint;
+            double lowerCoordinate;
+            for (long i = 0; i < DIMENSION; ++i) {
+                ifile >> lowerCoordinate;
+                lowerPoint.push_back(lowerCoordinate);
+            }
+
+            // Get the point from the file
+            vector <double> upperPoint;
+            double upperCoordinate;
+            for (long i = 0; i < DIMENSION; ++i) {
+                ifile >> upperCoordinate;
+                upperPoint.push_back(upperCoordinate);
+            }
+
+#ifdef OUTPUT
+            cout << endl << query << " ";
+            printPoint(lowerPoint);
+            cout << " ";
+            printPoint(upperPoint);
+            cout << endl;
+#endif
+#ifdef TIME
+            cout << query << " ";
+            auto start = std::chrono::high_resolution_clock::now();
+#endif
+            // windowSearch
+            windowSearch(RRoot, upperPoint, lowerPoint);
+#ifdef TIME
+            auto elapsed = std::chrono::high_resolution_clock::now() - start;
+            long long microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+            cout << microseconds << endl;
+#endif
+        }
+    }
+
+    // Close the file
+    ifile.close();
+}
+
+
 int main() {
     // Initialize the BPlusTree module
     Node::initialize();
@@ -1209,13 +1354,8 @@ int main() {
         buildTree();
     }
 
-    vector<double> point1 = {0.0, 0.0};
-    vector<double> point2 = {0.5, 0.5};
-    // rangeSearch(RRoot, point, sqrt(2));
-    // windowSearch(RRoot, point2, point1);
-
     // Process queries
-    // processQuery();
+    processQuery();
 
     // Store the session
     storeSession();
