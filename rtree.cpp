@@ -563,7 +563,7 @@ namespace RTree {
         double minSize;
 
 #ifdef DEBUG_INSERTPOSITION
-        cout << "getInsertPosition : " << endl;
+        cout << endl << "getInsertPosition : " << endl;
 #endif
 
         // Iterate over the children to find the child with minimum volume enlargement
@@ -597,6 +597,9 @@ namespace RTree {
                 delete child;
             }
         }
+
+        // Prettify
+        cout << endl;
 
         return minIndex;
     }
@@ -790,7 +793,7 @@ namespace RTree {
         // QUADRATIC SPLIT
 #ifdef DEBUG_SPLITNODE
         cout << "SplitNode: " << endl;
-        cout << "Root: ";
+        cout << "This : ";
         this->printInMemoryNode();
 #endif
 
@@ -1097,10 +1100,7 @@ void buildTree() {
     ifstream ifile;
     ifile.open("./assgn4_r_data.txt", ios::in);
 
-#ifdef DEBUG_NORMAL
     long count = 1;
-#endif
-
     vector <double> point;
     double coordinate;
     string dataString;
@@ -1120,9 +1120,7 @@ void buildTree() {
             break;
         }
 
-#ifdef DEBUG_NORMAL
-        cout << "Inserting " << count++ << endl;
-#endif
+        cout << endl << "Inserting " << count++ << " ";
 
         // Insert the object into file
         insert(RRoot, DBObject(point, dataString));
