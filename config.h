@@ -33,11 +33,6 @@
 // #define DEBUG_SPLITNODE
 // #define DEBUG_INSERTPOSITION
 
-// If the DEBUG level is VERBOSE then it is automatically normal
-#ifdef DEBUG_NORMAL
-#define DEBUG_INSERT
-#endif
-
 // -- Verbosity Level VV --
 #ifdef DEBUG_V
 #define DEBUG_INSERTPOSITION

@@ -1369,7 +1369,7 @@ int main() {
     storeSession();
 
     // Process queries
-    processQuery();
+    // processQuery();
 
     return 0;
 }
