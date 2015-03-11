@@ -594,8 +594,10 @@ namespace RTree {
             }
         }
 
+#ifdef DEBUG_INSERTPOSITION
         // Prettify
         cout << endl;
+#endif
 
         return minIndex;
     }
@@ -1119,10 +1121,15 @@ void buildTree() {
             break;
         }
 
-        cout << endl << "Inserting " << count++ << " ";
+        if (count % 5000 == 0) {
+            cout << endl << "Inserting " << count << " ";
+        }
 
         // Insert the object into file
         insert(RRoot, DBObject(point, dataString));
+
+        // Update count
+        count++;
     }
 
     // Close the file

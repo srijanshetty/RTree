@@ -27,7 +27,7 @@
 // #define TIME
 
 // -- Verbosity Level --
-#define DEBUG_NORMAL
+// #define DEBUG_NORMAL
 // #define DEBUG_V
 // #define DEBUG_INSERT
 // #define DEBUG_SPLITNODE
