@@ -1167,7 +1167,43 @@ namespace RTree {
         }
     }
 
-    void kNNSearch(Node *root, long k) {
+    void kNNSearch(Node *root, vector<double> point, long k) {
+        class comparator {
+            public:
+                bool operator () (pair<Node *, double> param1, pair<Node *, double> param2) {
+                    return param1.second > param2.second;
+                };
+        };
+        priority_queue< pair<Node*, double>, vector< pair<Node*, double> >, comparator> queue;
+
+        // Push the root onto the queue
+        queue.push(make_pair(root, 0.0));
+
+        // Now we find k nearest neighbours
+        long count = 0;
+        while (!queue.empty() && count < k) {
+            Node* currentNode = queue.top().first;
+            queue.pop();
+
+            if(currentNode->isLeaf()) {
+                for (long i = 0; i < (long) currentNode->childIndices.size() && count < k; ++i) {
+                    // Load the object and print it
+                    DBObject object(currentNode->childLowerPoints[i], currentNode->childIndices[i]);
+                    cout << object.getDataString() << endl;
+                    count++;
+                }
+            } else {
+                for (auto childIndex : currentNode->childIndices) {
+                    Node *tempNode = new Node(childIndex);
+                    queue.push(make_pair(tempNode, tempNode->getDistanceOfPoint(point)));
+                }
+            }
+
+            // Delete the allocated node
+            if (currentNode != RRoot) {
+                delete currentNode;
+            }
+        }
     }
 };
 
@@ -1306,6 +1342,34 @@ void processQuery() {
             cout << microseconds << endl;
 #endif
         } else if (query == 3) {
+            // Get the point from the file
+            vector <double> point;
+            double coordinate;
+            for (long i = 0; i < DIMENSION; ++i) {
+                ifile >> coordinate;
+                point.push_back(coordinate);
+            }
+
+            // Get the number of points
+            long k;
+            ifile >> k;
+
+#ifdef OUTPUT
+            cout << endl << query << " ";
+            printPoint(point);
+            cout << " " << k << endl;
+#endif
+#ifdef TIME
+            cout << query << " ";
+            auto start = std::chrono::high_resolution_clock::now();
+#endif
+            // kNNSearch
+            kNNSearch(RRoot, point, k);
+#ifdef TIME
+            auto elapsed = std::chrono::high_resolution_clock::now() - start;
+            long long microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+            cout << microseconds << endl;
+#endif
 
         } else if (query == 4) {
             // Get the point from the file
@@ -1369,7 +1433,7 @@ int main() {
     storeSession();
 
     // Process queries
-    // processQuery();
+    processQuery();
 
     return 0;
 }
