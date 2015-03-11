@@ -1288,7 +1288,7 @@ void processQuery() {
             auto start = std::chrono::high_resolution_clock::now();
 #endif
             // rangeSearch
-            rangeSearch(RRoot, point, range * 0.1);
+            rangeSearch(RRoot, point, range * 1.0);
 #ifdef TIME
             auto elapsed = std::chrono::high_resolution_clock::now() - start;
             long long microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
@@ -1302,7 +1302,7 @@ void processQuery() {
             double lowerCoordinate;
             for (long i = 0; i < DIMENSION; ++i) {
                 ifile >> lowerCoordinate;
-                lowerPoint.push_back(lowerCoordinate);
+                lowerPoint.push_back(lowerCoordinate * 1.0);
             }
 
             // Get the point from the file
@@ -1310,7 +1310,7 @@ void processQuery() {
             double upperCoordinate;
             for (long i = 0; i < DIMENSION; ++i) {
                 ifile >> upperCoordinate;
-                upperPoint.push_back(upperCoordinate);
+                upperPoint.push_back(upperCoordinate * 1.0);
             }
 
 #ifdef OUTPUT
@@ -1354,11 +1354,11 @@ int main() {
         buildTree();
     }
 
-    // Process queries
-    processQuery();
-
     // Store the session
     storeSession();
+
+    // Process queries
+    processQuery();
 
     return 0;
 }
