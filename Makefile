@@ -26,7 +26,7 @@ rtree.o: rtree.cpp config.h
 setup-files: clean-files
 	rm -f .tree.session
 	rm -f leaves/* objects/*
-	tar xvf data.tar
+	tar xvzf data.tar
 
 clean-all: clean-files
 	rm *.o *.out *.gch
