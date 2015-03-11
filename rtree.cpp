@@ -1187,9 +1187,11 @@ namespace RTree {
 
             if(currentNode->isLeaf()) {
                 for (long i = 0; i < (long) currentNode->childIndices.size() && count < k; ++i) {
+#ifdef OUTPUT
                     // Load the object and print it
                     DBObject object(currentNode->childLowerPoints[i], currentNode->childIndices[i]);
                     cout << object.getDataString() << endl;
+#endif
                     count++;
                 }
             } else {
