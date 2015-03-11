@@ -254,12 +254,8 @@ namespace RTree {
         long nodeSize = sizeof(fileIndex);
 
         // Compute the bounds
-        upperBound = pageSize / (2 * DIMENSION * keySize + nodeSize);
+        upperBound = pageSize / (4 * DIMENSION * keySize + nodeSize);
         lowerBound = upperBound / 2;
-
-        // TODO: clear this up
-        upperBound = 4;
-        lowerBound = 2;
     }
 
     double Node::getVolume(vector<double> upperPoint, vector<double> lowerPoint) const {
