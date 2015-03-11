@@ -1123,6 +1123,34 @@ namespace RTree {
             }
         }
     }
+
+    void windowSearch(Node *root, vector<double> upperPoint, vector<double> lowerPoint) {
+        if (root->isLeaf()) {
+            double distance;
+            for (long i = 0; i < (long)root->childIndices.size(); ++i) {
+                distance = root->getDistanceOfPoint(upperPoint, lowerPoint, root->childLowerPoints[i]);
+                if (distance == 0) {
+                    // Load the object and print it
+                    DBObject object(root->childLowerPoints[i], root->childIndices[i]);
+                    cout << object.getDataString() << endl;
+                }
+            }
+        } else {
+            // Descend into all possible children
+            double lowerPointDistance, upperPointDistance;
+            for (long i = 0; i < (long)root->childIndices.size(); ++i) {
+                lowerPointDistance = root->getDistanceOfPoint(root->childUpperPoints[i], root->childLowerPoints[i], lowerPoint);
+                upperPointDistance = root->getDistanceOfPoint(root->childUpperPoints[i], root->childLowerPoints[i], upperPoint);
+
+                // Descend if either the upperPoint or the lowerPoint lies in the child
+                if (lowerPointDistance == 0 || upperPointDistance == 0) {
+                    Node *tempNode = new Node(root->childIndices[i]);
+                    windowSearch(tempNode, upperPoint, lowerPoint);
+                    delete tempNode;
+                }
+            }
+        }
+    }
 };
 
 using namespace RTree;
@@ -1181,8 +1209,10 @@ int main() {
         buildTree();
     }
 
-    vector<double> point = {0.0, 0.0};
-    rangeSearch(RRoot, point, sqrt(2));
+    vector<double> point1 = {0.0, 0.0};
+    vector<double> point2 = {0.5, 0.5};
+    // rangeSearch(RRoot, point, sqrt(2));
+    // windowSearch(RRoot, point2, point1);
 
     // Process queries
     // processQuery();
