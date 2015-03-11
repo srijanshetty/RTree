@@ -922,8 +922,11 @@ namespace RTree {
 
             // Update the size of surrogateNode by subTree or by 1
             if (!this->isLeaf()) {
+                // Update the parent index of the child
                 Node *child = new Node(childIndices[vectorIndex]);
                 surrogateNode->updateSizeOfSubtree(child->getSizeOfSubtree());
+                child->setParentIndex(surrogateNode->getFileIndex());
+                child->storeNodeToDisk();
                 delete child;
             } else {
                 surrogateNode->updateSizeOfSubtree(1);
