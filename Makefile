@@ -5,10 +5,10 @@ DEBUG=-g
 .PHONY: all build restore setup-files clean-all clean-files
 
 # Call the build routine
-all: build
+all: tree.out
 
 # Start fresh
-build: clean-files tree.out
+fresh: clean-files tree.out
 
 # Load the first set of points inserted
 restore: setup-files tree.out
@@ -24,9 +24,9 @@ rtree.o: rtree.cpp config.h
 	# ./configure
 
 setup-files: clean-files
-	# rm -f .tree.session
-	# rm -f leaves/* objects/*
-	# tar xvf data.tar
+	rm -f .tree.session
+	rm -f leaves/* objects/*
+	tar xvf data.tar
 
 clean-all: clean-files
 	rm *.o *.out *.gch
