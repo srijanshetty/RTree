@@ -1148,12 +1148,18 @@ namespace RTree {
                 lowerPointDistance = root->getDistanceOfPoint(root->childUpperPoints[i], root->childLowerPoints[i], lowerPoint);
                 upperPointDistance = root->getDistanceOfPoint(root->childUpperPoints[i], root->childLowerPoints[i], upperPoint);
 
-                // Descend if either the upperPoint or the lowerPoint lies in the child
-                if (lowerPointDistance == 0 || upperPointDistance == 0) {
-                    Node *tempNode = new Node(root->childIndices[i]);
+                // Different cases depending on the values
+                Node *tempNode = new Node(root->childIndices[i]);
+                if (lowerPointDistance == 0 && upperPointDistance == 0) {
                     windowSearch(tempNode, upperPoint, lowerPoint);
-                    delete tempNode;
+                } else if (lowerPointDistance == 0) {
+                    windowSearch(tempNode, root->childUpperPoints[i], lowerPoint);
+                } else if (upperPointDistance == 0) {
+                    windowSearch(tempNode, upperPoint, root->childLowerPoints[i]);
+                } else {
+                    windowSearch(tempNode, root->childUpperPoints[i], root->childLowerPoints[i]);
                 }
+                delete tempNode;
             }
         }
     }
@@ -1188,9 +1194,11 @@ void buildTree() {
             break;
         }
 
+#ifdef DEBUG_NORMAL
         if (count % 5000 == 0) {
             cout << endl << "Inserting " << count << " ";
         }
+#endif
 
         // Insert the object into file
         insert(RRoot, DBObject(point, dataString));
