@@ -198,6 +198,9 @@ namespace RTree {
             // Distance of Point from a given node
             double getDistanceOfPoint(vector<double> point) const;
 
+            // Compute the distance between two points
+            double getDistanceBetweenPoints(vector<double> point1, vector<double> point2) const;
+
             // Store the node to disk
             void storeNodeToDisk() const;
 
@@ -310,6 +313,14 @@ namespace RTree {
 
     double Node::getDistanceOfPoint(vector<double> point) const {
         return getDistanceOfPoint(upperCoordinates, lowerCoordinates, point);
+    }
+
+    double Node::getDistanceBetweenPoints(vector<double> point1, vector<double> point2) const {
+        double distance = 0;
+        for (long i = 0; i < DIMENSION; ++i) {
+            distance = distance + ((point1[i] - point2[i]) * (point1[i] - point2[i]));
+        }
+        return sqrt(distance);
     }
 
     void Node::storeNodeToDisk() const {
@@ -1093,6 +1104,27 @@ namespace RTree {
             }
         }
     }
+
+    void rangeSearch(Node *root, vector<double> point, double range) {
+        if (root->isLeaf()) {
+            for (long i = 0; i < (long)root->childIndices.size(); ++i) {
+                if (root->getDistanceBetweenPoints(point, root->childLowerPoints[i]) <= range) {
+                    // Load the object and print it
+                    DBObject object(point, root->childIndices[i]);
+                    cout << object.getDataString() << endl;
+                }
+            }
+        } else {
+            // Descend into all possible children
+            for (long i = 0; i < (long)root->childIndices.size(); ++i) {
+                if(root->getDistanceOfPoint(root->childUpperPoints[i], root->childLowerPoints[i], point) <= range) {
+                    Node *tempNode = new Node(root->childIndices[i]);
+                    rangeSearch(tempNode, point, range);
+                    delete tempNode;
+                }
+            }
+        }
+    }
 };
 
 using namespace RTree;
@@ -1150,6 +1182,9 @@ int main() {
     // } else {
     buildTree();
     // }
+
+    vector<double> point = {0.0, 0.0};
+    rangeSearch(RRoot, point, sqrt(2));
 
     // Process queries
     // processQuery();
