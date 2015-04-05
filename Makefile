@@ -28,7 +28,7 @@ setup-files: clean-files
 	rm -f leaves/* objects/*
 	tar xvzf data.tar.gz
 
-clean-all: clean-files
+clean: clean-files
 	rm *.o *.out *.gch
 
 clean-files:
